@@ -1,5 +1,5 @@
 # Staffo
-**A teacher-locating system for JECC**
+**A staff-locating system for JECC**
 
 ## Overview
 Staffo helps students and staff quickly find where teachers are located within the JECC campus. It centralizes room assignments, schedules, and availability into a single, accessible interface.
