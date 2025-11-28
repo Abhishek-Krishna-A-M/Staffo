@@ -9,3 +9,4 @@ Staffo helps students and staff quickly find where teachers are located within t
 - Search by name, department, or subject
 - Admin panel for updating teacher data
 - Mobile-friendly interface
+
