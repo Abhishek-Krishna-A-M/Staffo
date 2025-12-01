@@ -9,7 +9,7 @@ export default function Landing() {
       <div className="max-w-4xl w-full items-center">
         <div className="flex flex-col gap-6">
           <img src="/staffo.png" alt="Staffo" className="w-30 absolute top-8 left-5" onClick={()=>{navigate('/')}}/>
-          <button onClick={()=>navigate('/login')} className='absolute top-9 right-5 bg-black text-white px-5 py-2 rounded-lg font-medium'>Login</button>
+          <button onClick={()=>navigate('/login')} className='absolute top-9 right-5 bg-black text-white px-5 py-2 rounded-lg font-medium cursor-pointer'>Login</button>
 
           <h1 className="text-5xl md:text-5xl font-bold text-center mt-40">Staffo <br/> <span className='font-semibold text-3xl'> Simple staff locator</span></h1>
           <p className="text-gray-600 text-sm text-center">Sign in with your JECC account to locate where your staff is or check if they are available.</p>
@@ -38,7 +38,7 @@ export default function Landing() {
               Ready to check staff availability instantly?
             </p>
 
-            <button onClick={()=>navigate('/login')} className='bg-white text-black px-2 py-1 rounded-lg mt-3 font-medium w-full'>Try Staffo</button>
+            <button onClick={()=>navigate('/login')} className='bg-white text-black px-2 py-1 rounded-lg mt-3 font-medium w-full cursor-pointer'>Try Staffo</button>
         </div>
       </div>
 

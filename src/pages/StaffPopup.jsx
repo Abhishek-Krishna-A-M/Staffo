@@ -91,7 +91,7 @@ export default function StaffPopup({ staff, onClose = () => {}, onViewMap = () =
 
         {/* footer */}
         <div className="mt-6 flex justify-end">
-          <button onClick={onClose} className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100 cursor-pointer">
             Close
           </button>
         </div>

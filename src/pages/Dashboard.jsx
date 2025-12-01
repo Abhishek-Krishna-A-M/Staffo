@@ -1,7 +1,7 @@
 // Dashboard.jsx
 import { useState, useMemo } from "react";
 import { MagnifyingGlass, MapPin } from "@phosphor-icons/react";
-import StaffPopup from "./StaffPopup"; // <- make sure path is correct
+import StaffPopup from "./StaffPopup";
 import { useNavigate } from "react-router-dom";
 
 export const staffList = [
@@ -204,8 +204,8 @@ export const staffList = [
   },
 ];
 
-const FILTERS = ["All","OFFICE", "BSH", "CSE", "CY", "AD", "EEE", "ME", "CE", "ECE", "MR", "RA"];
 
+const FILTERS = ["All","OFFICE", "BSH", "CSE", "CY", "AD", "EEE", "ME", "CE", "ECE", "MR", "RA"];
 const STATUS_META = {
   available: { label: "Available", bg: "bg-green-100", text: "text-green-800", dot: "bg-green-500" },
   in_class: { label: "In Class", bg: "bg-red-100", text: "text-red-800", dot: "bg-red-500" },
@@ -216,8 +216,7 @@ const STATUS_META = {
 export default function Dashboard() {
   const [q, setQ] = useState("");
   const [active, setActive] = useState("All");
-  const [selected, setSelected] = useState(null); // selected staff for popup
-
+  const [selected, setSelected] = useState(null);
   const navigate = useNavigate();
 
   const filtered = useMemo(() => {
@@ -234,7 +233,6 @@ export default function Dashboard() {
   }, [q, active]);
 
   const handleViewMap = (staff) => {
-    // replace with navigation to map or other behavior
     alert(`Open map for ${staff.name} — location: ${staff.location}`);
   };
 
@@ -242,7 +240,8 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50 px-4 pb-8 pt-4">
       <header className="max-w-full mx-auto mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-            <img src="/staffo.png" alt="Staffo" className="w-30" onClick={()=>{navigate('/')}}/>
+          {/* use a valid tailwind width */}
+          <img src="/staffo.png" alt="Staffo" className="w-32 cursor-pointer" onClick={() => navigate("/")} />
         </div>
 
         <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center">
@@ -253,9 +252,9 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto">
+      <main className="max-w-7xl mx-auto"> {/* ← wider wrapper so 2 columns fit */}
         {/* Search */}
-        <div className="mb-4 max-w-xl mx-auto">
+        <div className="mb-4 max-w-full">
           <div className="relative">
             <MagnifyingGlass size={24} className="text-gray-500 absolute left-3.5 top-3" />
             <input
@@ -268,12 +267,12 @@ export default function Dashboard() {
         </div>
 
         {/* Filter chips */}
-        <div className="flex gap-3 overflow-x-auto pb-3 mb-6 mx-auto max-w-xl scrollbar-thin scrollbar-thumb scrollbar-track">
+        <div className="flex gap-3 overflow-x-auto pb-3 mb-6 scrollbar-thin">
           {FILTERS.map((f) => (
             <button
               key={f}
               onClick={() => setActive(f)}
-              className={`whitespace-nowrap px-3 py-1 rounded-full text-sm font-medium shadow-sm ${
+              className={`whitespace-nowrap px-3 py-1 rounded-full text-sm font-medium shadow-sm cursor-pointer ${
                 active === f ? "bg-black text-white" : "bg-white text-gray-700"
               }`}
             >
@@ -282,15 +281,15 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* Staff cards */}
-        <div className="space-y-5 max-w-xl mx-auto">
+        {/* Staff cards grid: 1 column on small, 2 columns on lg and above */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {filtered.map((s) => {
             const meta = STATUS_META[s.status] || STATUS_META["on_leave"];
             return (
               <button
                 key={s.id}
-                onClick={() => setSelected(s)} // open popup on click
-                className="w-full text-left bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4 hover:shadow-md transition"
+                onClick={() => setSelected(s)}
+                className="w-full text-left bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4 hover:shadow-md transition cursor-pointer"
               >
                 <img
                   src={s.avatar}
@@ -306,10 +305,9 @@ export default function Dashboard() {
                       <div className="text-sm text-gray-500">{s.dept}</div>
                     </div>
 
-                    <div className={`flex items-center justify-center px-2 py-1 rounded-full ${meta.bg} min-w-16`}>
-                        <span className={`text-xs font-light ${meta.text} text-center`}>{meta.label}</span>
+                    <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full ${meta.bg} shrink-0`}>
+                      <span className={`text-xs font-medium ${meta.text} whitespace-nowrap`}>{meta.label}</span>
                     </div>
-
                   </div>
 
                   <div className="mt-3 items-center text-sm text-gray-500 gap-0.5 inline-flex">
@@ -320,14 +318,14 @@ export default function Dashboard() {
               </button>
             );
           })}
-
-          {filtered.length === 0 && (
-            <div className="bg-white rounded-2xl p-6 text-center text-gray-500">No staff found.</div>
-          )}
         </div>
+
+        {filtered.length === 0 && (
+          <div className="bg-white rounded-2xl p-6 text-center text-gray-500 mt-6">No staff found.</div>
+        )}
       </main>
 
-      {/* Staff popup (rendered when selected != null) */}
+      {/* Staff popup */}
       {selected && (
         <StaffPopup
           staff={{
@@ -340,7 +338,7 @@ export default function Dashboard() {
             location: selected.location,
             room: selected.location?.split(",")[0] || "",
             block: selected.location?.split("Block")?.[1]?.trim() || "",
-            schedule: selected.schedule, // optional
+            schedule: selected.schedule,
           }}
           onClose={() => setSelected(null)}
           onViewMap={(s) => {
