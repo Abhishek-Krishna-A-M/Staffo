@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { MapPin, CalendarPlus, PencilSimple, Plus } from "@phosphor-icons/react";
+import { MapPin, CalendarPlus, PencilSimple, Plus, CalendarCheck } from "@phosphor-icons/react";
 import { supabase } from "../utils/supabase";
 import Timetable from "../components/Timetable";
 import PhotoUploader from "../components/PhotoUploader";
-
+import { useNavigate } from "react-router-dom";
 
 const STATUS_META = {
   available: { label: "Available", bg: "bg-green-100", text: "text-green-800", dot: "bg-green-500" },
@@ -15,6 +15,7 @@ const STATUS_META = {
 const TITLE_OPTIONS = ["Mr", "Mrs", "Ms", "Dr", "Prof"];
 
 export default function StaffDashboard() {
+  const navigate = useNavigate();
   const [authUser, setAuthUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [staff, setStaff] = useState(null);
@@ -146,14 +147,20 @@ export default function StaffDashboard() {
       {/* Header */}
       <header className="max-w-full mx-auto mb-6 flex items-center justify-between">
         <div className="flex flex-col gap-5">
-        <img src="/staffo.png" alt="staffo logo" className="w-32 cursor-pointer" onClick={() => navigate("/")} />
+        <img src="/staffo.png" alt="staffo logo" className="w-32 cursor-pointer" onClick={() => navigate("/dashboard")} />
         <h1 className="text-xl font-semibold text-gray-800 ml-2">Staff Dashboard</h1>
         </div>
 
-        <div className="bg-black text-white rounded-full px-3 py-1 flex gap-1 cursor-pointer" onClick={()=>setShowSetup(true)}>
-          <PencilSimple size={20} />
-          <p>Edit Details</p>
-        </div>
+        {/* <div className="flex flex-col">
+          <div className="bg-black text-white rounded-full px-3 py-1 flex gap-1 cursor-pointer" onClick={()=>setShowSetup(true)}>
+            <PencilSimple size={20} />
+            <p>Edit Details</p>
+          </div>
+          <div className="bg-black text-white rounded-full px-3 py-1 flex gap-1 cursor-pointer" onClick={()=>setShowSetup(true)}>
+            <PencilSimple size={20} />
+            <p>Your Meetings</p>
+          </div>
+        </div> */}
       </header>
 
       <main className="max-w-3xl mx-auto space-y-6">
@@ -179,6 +186,17 @@ export default function StaffDashboard() {
                 <span className={`text-sm font-medium ${meta.text}`}>{meta.label}</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="flex flex-row justify-around">
+          <div className="bg-white text-black border rounded-full px-6 py-2 flex items-center gap-1 cursor-pointer" onClick={()=>setShowSetup(true)}>
+            <PencilSimple size={20} />
+            <p>Edit Details</p>
+          </div>
+          <div className="bg-white text-black border rounded-full px-6 py-2 flex items-center gap-1 cursor-pointer" onClick={()=>navigate("/meetings")}>
+            <CalendarCheck size={20} />
+            <p>Your Meetings</p>
           </div>
         </div>
 

@@ -118,44 +118,52 @@ export default function Dashboard() {
               <button
                 key={s.id}
                 onClick={() => setSelected(s)}
-                className="w-full text-left bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4 
-                           hover:shadow-md transition cursor-pointer"
+                className="relative w-full text-left bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition cursor-pointer flex items-start gap-4"
               >
-                <img
-                  src={s.avatar}
-                  alt={s.name}
-                  onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/64")}
-                  className="w-22 h-22 rounded-full object-cover shrink-0"
-                />
-                <img src="/bluetick.png" alt="verified" className="w-6 absolute ml-16 mt-15" />
+                {/* avatar */}
+                <div className="shrink-0 h-full flex items-center">
+                  <img
+                    src={s.avatar}
+                    alt={s.name}
+                    onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/64")}
+                    className="w-22 h-22 md:w-20 md:h-20  rounded-full object-cover shadow-sm"
+                  />
+                  {/* verified tick — positioned relative to avatar */}
+                  <img
+                    src="/bluetick.png"
+                    alt="verified"
+                    className="w-7 h-7 md:w-6 md:h-6 mt-15 ml-15 md:ml-12 absolute "
+                  />
+                </div>
 
-                <div className="flex-1">
+                {/* main content — takes most of the horizontal space */}
+                <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-4">
-                    <div>
-
-                      <div className="text-lg font-semibold text-gray-800 leading-tight">
+                    <div className="min-w-0">
+                      <div className="text-base md:text-lg font-semibold text-gray-800 truncate">
                         {s.name}
                       </div>
 
                       {s.designation && (
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-gray-600 truncate">
                           {s.designation}
                         </div>
                       )}
 
-                      <div className="text-sm text-gray-500">{s.dept}</div>
-                    </div>
-
-                    <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full ${meta.bg} shrink-0`}>
-                      <span className={`text-xs font-medium ${meta.text} whitespace-nowrap`}>
-                        {meta.label}
-                      </span>
+                      <div className="text-sm text-gray-500 mt-1">{s.dept}</div>
                     </div>
                   </div>
 
-                  <div className="mt-3 items-center text-sm text-gray-500 gap-0.5 inline-flex">
+                  <div className="mt-3 flex items-center text-sm text-gray-500 gap-2">
                     <MapPin size={18} />
-                    <span className="truncate max-w-xs">{s.location || "Not provided"}</span>
+                    <span className="truncate">{s.location || "Not provided"}</span>
+                  </div>
+
+                  {/* mobile: show badge and map link below so they don't steal width */}
+                  <div className="mt-3 absolute right-5 bottom-3.5 gap-3">
+                    <div className={`inline-flex items-center justify-center px-3 py-1 rounded-full ${meta.bg}`}>
+                      <span className={`text-xs font-medium ${meta.text} whitespace-nowrap`}>{meta.label}</span>
+                    </div>
                   </div>
                 </div>
               </button>
