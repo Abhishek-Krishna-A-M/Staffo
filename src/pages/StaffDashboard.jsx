@@ -132,7 +132,7 @@ export default function StaffDashboard() {
   // ----------------------------------------------------------------
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 pb-10 pt-6">
+    <div className="min-h-screen bg-gray-50 px-4 pb-10 pt-6 mb-20">
 
       {showDpUploader && (
         <PhotoUploader
