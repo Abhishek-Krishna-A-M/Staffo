@@ -18,11 +18,11 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
-              <RoleRoute allow={["student", "default", "staff"]}>
+            // <ProtectedRoute>
+            //   <RoleRoute allow={["student", "default", "staff"]}>
                 <Dashboard />
-              </RoleRoute>
-            </ProtectedRoute>
+            //   </RoleRoute>
+            // </ProtectedRoute>
           }
         />
 
@@ -30,11 +30,11 @@ function App() {
         <Route
           path="/staffdashboard"
           element={
-            <ProtectedRoute>
-              <RoleRoute allow={["staff"]}>
+            // <ProtectedRoute>
+            //   <RoleRoute allow={["staff"]}>
                 <StaffDashboard />
-              </RoleRoute>
-            </ProtectedRoute>
+            //   </RoleRoute>
+            // </ProtectedRoute>
           }
         />
 
