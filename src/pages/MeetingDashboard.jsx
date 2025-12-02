@@ -32,8 +32,15 @@ export default function MeetingDashboard({ staffId }) {
   return (
     <div className="min-h-screen px-4 py-6 bg-gray-50">
 
-      <header className="flex justify-between items-center mb-5">
-        <h1 className="text-xl font-semibold">Meetings Dashboard</h1>
+      <header className="max-w-full mx-auto mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <img
+            src="/staffo.png"
+            alt="Staffo"
+            className="w-32 cursor-pointer"
+            onClick={() => navigate("/")}
+          />
+        </div>
 
         <button
           onClick={() => {

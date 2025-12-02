@@ -95,7 +95,7 @@ export default function Timetable({ staffId, onClose }) {
               <div className="mt-3 space-y-3">
                 {entries[day].map((slot, idx) => (
                   <div key={idx} className="border p-3 rounded-xl">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3 grid-flow-col">
                       <input
                         type="time"
                         value={slot.start_time}

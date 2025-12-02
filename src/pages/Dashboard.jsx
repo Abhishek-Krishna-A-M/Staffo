@@ -193,6 +193,8 @@ export default function Dashboard() {
           }}
         />
       )}
+
+      <p className="fixed bottom-0 left-0 right-0 text-xs text-center text-gray-600 w-screen">version 1.0.0</p>
     </div>
   );
 }

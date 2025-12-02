@@ -144,7 +144,7 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 overflow-y-auto p-5">
       <div className="bg-white w-full max-w-lg p-6 rounded-2xl shadow space-y-5 my-8">
 
         <h2 className="text-xl font-semibold mb-3">

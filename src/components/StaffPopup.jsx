@@ -46,6 +46,7 @@ export default function StaffPopup({ staff, onClose = () => { }, onViewMap = () 
             alt={staff.name}
             className="w-28 h-28 rounded-full object-cover shadow-sm"
           />
+          <img src="/bluetick.png" alt="verified" className="w-8 absolute ml-17 mt-21"/>
           <h2 className="mt-4 text-xl font-semibold text-gray-800">{staff.name}</h2>
           <p className="text-sm text-gray-500">
             {staff.dept}{staff.role ? `, ${staff.role}` : ""}

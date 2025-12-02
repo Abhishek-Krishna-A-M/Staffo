@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { MapPin, CalendarPlus, PencilSimple, Plus } from "@phosphor-icons/react";
 import { supabase } from "../utils/supabase";
 import Timetable from "../components/Timetable";
+import PhotoUploader from "../components/PhotoUploader";
+
 
 const STATUS_META = {
   available: { label: "Available", bg: "bg-green-100", text: "text-green-800", dot: "bg-green-500" },
@@ -20,6 +22,7 @@ export default function StaffDashboard() {
   const [loading, setLoading] = useState(true);
   const [showSetup, setShowSetup] = useState(false);
   const [showTimetable, setShowTimetable] = useState(false);
+  const [showDpUploader, setShowDpUploader] = useState(false);
 
   // ----------------------------------------------------------------
   // LOAD AUTH USER → PROFILE → STAFF
@@ -130,6 +133,16 @@ export default function StaffDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 px-4 pb-10 pt-6">
 
+      {showDpUploader && (
+        <PhotoUploader
+          show={showDpUploader}
+          onClose={() => setShowDpUploader(false)}
+          staffId={staff?.id}
+          updateStaffField={updateStaffField}
+          updateProfileField={updateProfileField}
+        />
+      )}
+
       {/* Header */}
       <header className="max-w-full mx-auto mb-6 flex items-center justify-between">
         <div className="flex flex-col gap-5">
@@ -137,7 +150,7 @@ export default function StaffDashboard() {
         <h1 className="text-xl font-semibold text-gray-800 ml-2">Staff Dashboard</h1>
         </div>
 
-        <div className="bg-black text-white rounded-full px-3 py-1 flex gap-1" onClick={()=>setShowSetup(true)}>
+        <div className="bg-black text-white rounded-full px-3 py-1 flex gap-1 cursor-pointer" onClick={()=>setShowSetup(true)}>
           <PencilSimple size={20} />
           <p>Edit Details</p>
         </div>
@@ -152,6 +165,8 @@ export default function StaffDashboard() {
               src={staff.photo_url || "/profile-icon.png"}
               className="w-20 h-20 rounded-full object-cover"
             />
+
+            <PencilSimple size={25} className="cursor-pointer absolute bg-black text-white rounded-full p-1 ml-13 mt-15" onClick={() => setShowDpUploader(true)}/>
 
             <div>
               <h2 className="text-lg font-semibold text-gray-800">{staff.name}</h2>
@@ -176,7 +191,7 @@ export default function StaffDashboard() {
               <button
                 key={key}
                 onClick={() => updateStatus(key)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition 
+                className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition cursor-pointer
                   ${staff.status === key ? "border-black bg-gray-100" : "border-gray-200 bg-white"}`}
               >
                 <span className={`w-3 h-3 rounded-full ${m.dot}`} />
@@ -210,7 +225,7 @@ export default function StaffDashboard() {
         {/* Timetable Button */}
         <button
           onClick={() => setShowTimetable(true)}
-          className="w-full bg-white text-black border border-black border-dashed rounded-xl font-medium shadow-md flex flex-col items-center justify-center py-15"
+          className="w-full bg-white text-black border border-black border-dashed rounded-xl font-medium shadow-md flex flex-col items-center justify-center py-15 cursor-pointer"
         >
           <p className="bg-black rounded-full p-2"><Plus size={32} weight="bold" className="text-white" /></p>
           <p className="mt-3">Add or Edit Timetable</p>
@@ -328,8 +343,14 @@ function SetupModal({ staff, profile, updateStaff, updateProfile, onClose }) {
 
         <div className="flex justify-end mt-6">
           <button
+            onClick={onClose}
+            className="px-4 py-2 mr-3 bg-gray-200 text-gray-700 rounded-xl cursor-pointer"
+          >
+            Close
+          </button>
+          <button
             onClick={save}
-            className="px-4 py-2 bg-black text-white rounded-xl"
+            className="px-4 py-2 bg-black text-white rounded-xl cursor-pointer"
           >
             Save
           </button>
@@ -338,3 +359,4 @@ function SetupModal({ staff, profile, updateStaff, updateProfile, onClose }) {
     </div>
   );
 }
+
