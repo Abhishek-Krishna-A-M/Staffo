@@ -178,107 +178,119 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
   // RENDER UI
   // -----------------------------------------------------
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 overflow-y-auto p-5">
-      <div className="bg-white w-full max-w-lg p-6 rounded-2xl shadow space-y-5 my-8">
-        <h2 className="text-xl font-semibold mb-3">
-          {meeting ? "Edit Meeting" : "New Meeting"}
-        </h2>
+    <div
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-200 p-5"
+      role="dialog"
+      aria-modal="true"
+    >
+      {/* Dialog: constrained height + internal scrolling so longer forms still look perfect */}
+      <div className="bg-white w-full max-w-lg rounded-2xl shadow space-y-5 my-8
+                      flex flex-col max-h-[90vh] overflow-hidden">
+        {/* Scrollable content */}
+        <div className="px-6 py-5 overflow-y-auto space-y-5">
+          <h2 className="text-xl font-semibold mb-5">
+            {meeting ? "Edit Meeting" : "New Meeting"}
+          </h2>
 
-        {/* Inputs */}
-        <input
-          type="text"
-          placeholder="Meeting Title"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-          className="w-full px-4 py-3 border rounded-xl bg-gray-50"
-        />
-
-        <textarea
-          placeholder="Description"
-          value={desc}
-          onChange={e => setDesc(e.target.value)}
-          className="w-full px-4 py-3 border rounded-xl bg-gray-50"
-        />
-
-        <input
-          type="date"
-          value={date}
-          onChange={e => setDate(e.target.value)}
-          className="w-full px-4 py-3 border rounded-xl bg-gray-50"
-        />
-
-        <div className="flex gap-3">
+          {/* Inputs */}
           <input
-            type="time"
-            value={start}
-            onChange={e => setStart(e.target.value)}
+            type="text"
+            placeholder="Meeting Title"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
             className="w-full px-4 py-3 border rounded-xl bg-gray-50"
           />
-          <input
-            type="time"
-            value={end}
-            onChange={e => setEnd(e.target.value)}
+
+          <textarea
+            placeholder="Description"
+            value={desc}
+            onChange={e => setDesc(e.target.value)}
             className="w-full px-4 py-3 border rounded-xl bg-gray-50"
           />
-        </div>
 
-        <input
-          type="text"
-          placeholder="Location"
-          value={location}
-          onChange={e => setLocation(e.target.value)}
-          className="w-full px-4 py-3 border rounded-xl bg-gray-50"
-        />
-
-        {/* Search + Filter */}
-        <div className="relative">
-          <MagnifyingGlass size={20} className="absolute left-3 top-3 text-gray-500" />
           <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search staff..."
-            className="w-full pl-10 pr-4 py-3 border rounded-xl bg-gray-50"
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            className="w-full px-4 py-3 border rounded-xl bg-gray-50"
           />
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="time"
+              value={start}
+              onChange={e => setStart(e.target.value)}
+              className="w-full px-4 py-3 border rounded-xl bg-gray-50"
+            />
+            <input
+              type="time"
+              value={end}
+              onChange={e => setEnd(e.target.value)}
+              className="w-full px-4 py-3 border rounded-xl bg-gray-50"
+            />
+          </div>
+
+          <input
+            type="text"
+            placeholder="Location"
+            value={location}
+            onChange={e => setLocation(e.target.value)}
+            className="w-full px-4 py-3 border rounded-xl bg-gray-50"
+          />
+
+          {/* Search + Filter */}
+          <div className="relative">
+            <MagnifyingGlass size={20} className="absolute left-3 top-3 text-gray-500" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search staff..."
+              className="w-full pl-10 pr-4 py-3 border rounded-xl bg-gray-50"
+            />
+          </div>
+
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {FILTERS.map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-3 py-1 rounded-full text-sm ${filter === f ? "bg-black text-white" : "bg-white border"
+                  }`}
+                type="button"
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+
+          {/* Staff list */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto">
+            {filteredStaff.map(s => (
+              <button
+                key={s.id}
+                onClick={() => toggleStaff(s.id)}
+                className={`flex items-center gap-3 p-3 border rounded-xl ${selected.includes(s.id)
+                    ? "bg-gray-100 border-black"
+                    : "bg-white border-gray-200"
+                  }`}
+                type="button"
+              >
+                <img
+                  src={s.photo_url || "/profile-icon.png"}
+                  className="w-12 h-12 rounded-full object-cover"
+                  alt={s.name}
+                />
+                <div>
+                  <div className="font-medium">{s.name}</div>
+                  <div className="text-sm text-gray-500">{s.dept}</div>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto pb-2">
-          {FILTERS.map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1 rounded-full text-sm ${filter === f ? "bg-black text-white" : "bg-white border"
-                }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-
-        {/* Staff list */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto">
-          {filteredStaff.map(s => (
-            <button
-              key={s.id}
-              onClick={() => toggleStaff(s.id)}
-              className={`flex items-center gap-3 p-3 border rounded-xl ${selected.includes(s.id)
-                  ? "bg-gray-100 border-black"
-                  : "bg-white border-gray-200"
-                }`}
-            >
-              <img
-                src={s.photo_url || "/profile-icon.png"}
-                className="w-12 h-12 rounded-full object-cover"
-              />
-              <div>
-                <div className="font-medium">{s.name}</div>
-                <div className="text-sm text-gray-500">{s.dept}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* Footer buttons */}
-        <div className="flex justify-between mt-4">
+        {/* Footer buttons — kept visually identical but pinned so actions stay visible */}
+        <div className="px-6 py-4 border-t flex justify-between bg-white gap-2">
           <button onClick={onClose} className="px-4 py-2 rounded-xl bg-gray-300">
             Cancel
           </button>
@@ -286,6 +298,7 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
           <button
             onClick={save}
             className="px-5 py-2 rounded-xl bg-black text-white"
+            type="button"
           >
             {meeting ? "Save Changes" : "Create Meeting"}
           </button>

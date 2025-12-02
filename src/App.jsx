@@ -23,7 +23,7 @@ function playNotificationSound() {
 }
 
 function showToast(title, body) {
-  toast.success(`${title}\n${body}`);
+  toast.success(`${title}\n${body}` , { duration: 8000 });
 }
 
 // -----------------------------------------
