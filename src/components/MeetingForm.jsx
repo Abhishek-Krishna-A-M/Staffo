@@ -34,13 +34,22 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
 
   // load participants for editing
   useEffect(() => {
-    if (!meeting) return;
+    if (!meeting) {
+      setSelected([]);
+      return;
+    }
 
     const loadParticipants = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("meeting_participants")
         .select("staff_id")
         .eq("meeting_id", meeting.id);
+
+      if (error) {
+        console.error("Failed to load participants:", error);
+        setSelected([]);
+        return;
+      }
 
       setSelected(data?.map((x) => x.staff_id) || []);
     };
@@ -121,24 +130,34 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
     }
 
     // REMOVE OLD PARTICIPANTS
-    await supabase.from("meeting_participants").delete().eq("meeting_id", meetingId);
+    const { error: delErr } = await supabase
+      .from("meeting_participants")
+      .delete()
+      .eq("meeting_id", meetingId);
 
-    // INSERT NEW PARTICIPANTS
-    await supabase.from("meeting_participants").insert(
-      selected.map((sid) => ({
-        meeting_id: meetingId,
-        staff_id: sid, // <= important fix
-      }))
-    );
+    if (delErr) {
+      console.error("Failed to delete old participants:", delErr);
+      alert("Failed to save participants");
+      return;
+    }
 
-    // SEND NOTIFICATIONS
-    await supabase.from("notifications").insert(
-      selected.map((sid) => ({
-        staff_id: sid, // <= using staff.id only
-        message: `You have a meeting: ${title} at ${location}`,
-      }))
-    );
+    // INSERT NEW PARTICIPANTS (this will trigger notifications via DB trigger)
+    const rows = selected.map((sid) => ({
+      meeting_id: meetingId,
+      staff_id: sid, // <= important: staff_id is used for trigger and notification
+    }));
 
+    const { error: insertErr } = await supabase
+      .from("meeting_participants")
+      .insert(rows);
+
+    if (insertErr) {
+      console.error("Failed to insert participants:", insertErr);
+      alert("Failed to save participants");
+      return;
+    }
+
+    // DO NOT insert into notifications here — DB trigger (meeting_participants -> notifications) handles it
     alert("Meeting saved!");
     onClose();
   };
@@ -146,12 +165,10 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 overflow-y-auto p-5">
       <div className="bg-white w-full max-w-lg p-6 rounded-2xl shadow space-y-5 my-8">
-
         <h2 className="text-xl font-semibold mb-3">
           {meeting ? "Edit Meeting" : "New Meeting"}
         </h2>
 
-        {/* INPUTS */}
         <input
           type="text"
           placeholder="Meeting Title"
@@ -197,7 +214,6 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
           className="w-full px-4 py-3 border rounded-xl bg-gray-50"
         />
 
-        {/* SEARCH */}
         <div className="relative">
           <MagnifyingGlass size={20} className="absolute left-3 top-3 text-gray-500" />
           <input
@@ -208,7 +224,6 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
           />
         </div>
 
-        {/* FILTERS */}
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
           {FILTERS.map((f) => (
             <button
@@ -222,7 +237,6 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
           ))}
         </div>
 
-        {/* STAFF PICKER */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto">
           {filteredStaff.map((s) => (
             <button
@@ -245,7 +259,6 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
           ))}
         </div>
 
-        {/* ACTIONS */}
         <div className="flex justify-between mt-4">
           <button
             onClick={onClose}

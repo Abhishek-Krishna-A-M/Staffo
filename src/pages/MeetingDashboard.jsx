@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../utils/supabase";
 import MeetingForm from "../components/MeetingForm";
 import MeetingList from "../components/MeetingList";
@@ -8,9 +9,11 @@ export default function MeetingDashboard({ staffId }) {
   const [loading, setLoading] = useState(true);
   const [editingMeeting, setEditingMeeting] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const navigate = useNavigate();
 
   // Load meetings hosted by this staff
   const loadMeetings = async () => {
+    setLoading(true);
     const { data, error } = await supabase
       .from("meetings")
       .select("*")
@@ -24,14 +27,18 @@ export default function MeetingDashboard({ staffId }) {
   };
 
   useEffect(() => {
+    if (!staffId) {
+      setMeetings([]);
+      setLoading(false);
+      return;
+    }
     loadMeetings();
-  }, []);
+  }, [staffId]);
 
   if (loading) return <div className="p-6">Loading…</div>;
 
   return (
     <div className="min-h-screen px-4 py-6 bg-gray-50">
-
       <header className="max-w-full mx-auto mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img
@@ -65,7 +72,7 @@ export default function MeetingDashboard({ staffId }) {
       {/* Meeting Form Modal */}
       {showForm && (
         <MeetingForm
-          staffId={staffId}      // ✅ correct
+          staffId={staffId}
           meeting={editingMeeting}
           onClose={() => {
             setShowForm(false);
