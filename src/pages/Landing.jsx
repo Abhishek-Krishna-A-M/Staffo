@@ -96,7 +96,7 @@ export default function Landing() {
         {/* <img src="/Jyothi Logo Blue.png" alt="Jyothi Logo" className='w-60 items-center mx-auto opacity-80'/> */}
       </div>
 
-      <p className='text-xs text-gray-400 fixed bottom-0'>version 1.0.0</p>
+      <p className='text-xs text-gray-400 fixed bottom-0'>Beta version</p>
 
 
     </div>

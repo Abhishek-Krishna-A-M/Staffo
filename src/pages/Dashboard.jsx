@@ -113,7 +113,7 @@ export default function Dashboard() {
         {/* Staff cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {filtered.map((s) => {
-            const meta = STATUS_META[s.status] || STATUS_META["on_leave"];
+            const meta = STATUS_META[s.status] || STATUS_META["available"];
 
             return (
               <button
@@ -186,7 +186,7 @@ export default function Dashboard() {
             name: selected.name,
             dept: selected.dept,
             role: selected.role || "",
-            avatar: selected.avatar,
+            avatar: selected.photo_url,
             designation: selected.designation || "",
             status: selected.status,
             statusLabel: STATUS_META[selected.status]?.label,
@@ -203,7 +203,7 @@ export default function Dashboard() {
         />
       )}
 
-      <p className="fixed bottom-0 left-0 right-0 text-xs text-center text-gray-600 w-screen">version 1.0.0</p>
+      <p className="fixed bottom-0 left-0 right-0 text-xs text-center text-gray-400 w-screen">Beta version</p>
     </div>
   );
 }
