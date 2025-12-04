@@ -168,7 +168,7 @@ export default function Dashboard() {
 
                   <div className="mt-3 flex items-center text-sm text-gray-500 gap-0.5">
                     <MapPin size={18} />
-                    <span className="truncate">{s.location || "Not provided"}</span>
+                    <span className="truncate">{s.location || "N/A"}</span>
                   </div>
 
                   {/* mobile: show badge and map link below so they don't steal width */}

@@ -48,7 +48,7 @@ const NavBar = () => {
             <UserCircle size={22} className="text-white" />
             <span className="text-xs mt-0.5 text-white">Dashboard</span>
             {isActive && (
-              <span className="absolute bottom-2 translate-y-1.5 w-1/5 h-0.5 bg-white "></span>
+              <span className="absolute bottom-2 translate-y-1.5 w-1/5 h-0.5 bg-white rounded-full"></span>
             )}
           </>
         )}
