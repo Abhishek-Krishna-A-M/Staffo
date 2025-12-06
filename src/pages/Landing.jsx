@@ -68,20 +68,56 @@ export default function Landing() {
 
           <div className="flex gap-3 mt-4 justify-center">
             <Link to="/login" className="inline-block bg-black hover:bg-gray-800 text-white px-5 py-3 rounded-lg font-medium">Get Started</Link>
-            <a onClick={()=>navigate('/login')} className="inline-block border bg-white border-black hover:bg-gray-100 text-gray-700 px-5 py-3 rounded-lg">Login</a>
+            <a onClick={()=>navigate('/login')} className="inline-block border bg-white border-black hover:bg-gray-100 text-gray-700 px-5 py-3 rounded-lg cursor-pointer">Login</a>
           </div>
         </div>
 
         <div className="bg-white rounded-2xl mt-10" id='features'>
           <h3 className="text-2xl font-semibold mb-10 text-center">Why Staffo?</h3>
+          
           <ul className="text-gray-700 border border-black rounded-lg">
-            <li className='border border-black w-fit px-2 py-0.5 rounded-full bg-black text-white text-sm ml-2 -mt-3'># Real time status</li>
-            <p className="text-sm p-3">Get the realtime status of your staff to know their availability and location.</p>
+            <li className='border border-black w-fit px-2 py-0.5 rounded-full bg-black text-white text-sm ml-2 -mt-3'># Real-time Status</li>
+            <p className="text-sm p-3">See exactly where your staff is located and their current availability status (Available, In Class, Busy, or On Leave).</p>
           </ul>
 
           <ul className="text-gray-700 mt-5 border border-black rounded-lg">
             <li className='border border-black w-fit px-2 py-0.5 rounded-full bg-black text-white text-sm ml-2 -mt-3'># Fast & Simple</li>
-            <p className="text-sm p-3">Minimal UI built for quick access. No clutter, no confusion.</p>
+            <p className="text-sm p-3">Minimal, clean interface built for quick access. No clutter, no confusion. Find who you need in seconds.</p>
+          </ul>
+
+          <ul className="text-gray-700 mt-5 border border-black rounded-lg">
+            <li className='border border-black w-fit px-2 py-0.5 rounded-full bg-black text-white text-sm ml-2 -mt-3'># Smart Search</li>
+            <p className="text-sm p-3">Search staff by name or department. Filter by your department to find colleagues instantly.</p>
+          </ul>
+
+          <ul className="text-gray-700 mt-5 border border-black rounded-lg">
+            <li className='border border-black w-fit px-2 py-0.5 rounded-full bg-black text-white text-sm ml-2 -mt-3'># Schedule & Timetables</li>
+            <p className="text-sm p-3">View and manage class schedules. Know which room your staff is teaching in each period.</p>
+          </ul>
+
+          <ul className="text-gray-700 mt-5 border border-black rounded-lg">
+            <li className='border border-black w-fit px-2 py-0.5 rounded-full bg-black text-white text-sm ml-2 -mt-3'># Meeting Scheduler</li>
+            <p className="text-sm p-3">Schedule meetings easily and notify participants instantly. Keep everyone in the loop.</p>
+          </ul>
+
+          <ul className="text-gray-700 mt-5 border border-black rounded-lg">
+            <li className='border border-black w-fit px-2 py-0.5 rounded-full bg-black text-white text-sm ml-2 -mt-3'># Profile Management</li>
+            <p className="text-sm p-3">Staff can update their profile, manage photos, and keep their information current.</p>
+          </ul>
+
+          <ul className="text-gray-700 mt-5 border border-black rounded-lg">
+            <li className='border border-black w-fit px-2 py-0.5 rounded-full bg-black text-white text-sm ml-2 -mt-3'># Instant Notifications</li>
+            <p className="text-sm p-3">Get real-time alerts when meetings are scheduled or when staff status changes.</p>
+          </ul>
+
+          <ul className="text-gray-700 mt-5 border border-black rounded-lg">
+            <li className='border border-black w-fit px-2 py-0.5 rounded-full bg-black text-white text-sm ml-2 -mt-3'># Mobile Friendly</li>
+            <p className="text-sm p-3">Use Staffo on any device - laptop, tablet, or phone. Access it anywhere on or off campus.</p>
+          </ul>
+
+          <ul className="text-gray-700 mt-5 border border-black rounded-lg">
+            <li className='border border-black w-fit px-2 py-0.5 rounded-full bg-black text-white text-sm ml-2 -mt-3'># Advanced Availability Search</li>
+            <p className="text-sm p-3">Find available staff based on specific criteria. Analyze for staff who are free at particular times using heatmaps to schedule important meetings or discussions.</p>
           </ul>
         </div>
 

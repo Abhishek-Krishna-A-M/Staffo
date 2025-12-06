@@ -148,12 +148,12 @@ export default function MeetingDashboard() {
   }, []);
 
   if (loading)
-    return (
-      <div className="p-6 text-center">
-        <img src="/staffo.png" className="w-24 mx-auto mb-5" />
-        Loading meetings…
-      </div>
-    );
+  return (
+  <div className="p-6  flex flex-col justify-center items-center mt-[35dvh]">
+    <img src="/staffo.png" alt="Loading..." className="w-50" />
+    <p className="mt-5 text-gray-500">Getting your schedules...</p>
+  </div>
+  );
 
   if (!authUser || !staff)
     return (

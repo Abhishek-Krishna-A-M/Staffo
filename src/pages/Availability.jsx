@@ -346,7 +346,7 @@ export default function AvailabilityAdvanced() {
         <div className="flex items-center gap-3">
           <img src="/staffo.png" alt="Staffo" className="w-32 cursor-pointer" onClick={() => (window.location.href = "/")} />
         </div>
-        <h1 className="text-xl font-semibold text-gray-800 ml-2 mt-2">Advanced Availability (Period-based)</h1>
+        <h1 className="text-xl font-semibold text-gray-800 ml-2 mt-2">Advanced Availability Analyzer</h1>
       </header>
 
       <main className="max-w-6xl mx-auto space-y-5">
@@ -365,7 +365,7 @@ export default function AvailabilityAdvanced() {
 
             <div>
               <label className="text-xs font-medium text-gray-600">Department</label>
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-thin">
                 {FILTERS.map((f) => (
                   <button key={f} onClick={() => setDeptFilter(f)} className={`whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium ${deptFilter === f ? "bg-black text-white" : "bg-white text-gray-700 border border-gray-200"}`} type="button">
                     {f}

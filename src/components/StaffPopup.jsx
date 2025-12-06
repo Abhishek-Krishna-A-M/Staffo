@@ -101,7 +101,7 @@ export default function StaffPopup({ staff, onClose = () => { }, onViewMap = () 
         </button>
 
         {/* Handle */}
-        <div className="flex justify-center mt-3 mb-5">
+        <div className="flex justify-center -mt-3 mb-5">
           <div className="w-24 h-1.5 bg-gray-200 rounded-full" />
         </div>
 
@@ -170,7 +170,7 @@ export default function StaffPopup({ staff, onClose = () => { }, onViewMap = () 
         </div>
 
         {/* Timetable */}
-        <div className="mt-6 mb-6">
+        <div className="mt-6 pb-25">
           <h3 className="text-base font-semibold">Today's Timetable</h3>
 
           {todayClasses.length === 0 ? (

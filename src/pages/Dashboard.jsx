@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { MagnifyingGlass, MapPin, Bug } from "@phosphor-icons/react";
+import { MagnifyingGlass, MapPin, Bug, SignOut } from "@phosphor-icons/react";
 import StaffPopup from "../components/StaffPopup.jsx";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../utils/supabase";
@@ -68,9 +68,13 @@ export default function Dashboard() {
     window.location.href = `mailto:${recipients}?subject=${subject}&body=${body}`;
   };
 
+  const handleSignOut = () =>{
+    localStorage.clear();
+    navigate("/");
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 pb-8 pt-4">
+    <div className="min-h-screen bg-gray-50 px-4 pb-50 pt-4">
       <header className="max-w-full mx-auto mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <img
@@ -81,14 +85,19 @@ export default function Dashboard() {
           />
         </div>
 
-        <div
-          className="rounded-full bg-black flex items-center justify-center px-2 py-1 mt-3 text-white cursor-pointer"
-          onClick={handleMail}
-        >
-          <Bug size={18} />
-          <p className="m-1 text-xs">Report an Issue</p>
-        </div>
+        <div className="flex items-center gap-1">
+          <div
+            className="rounded-full bg-black flex items-center justify-center px-2 py-1 mt-3 text-white cursor-pointer"
+            onClick={handleMail}
+          >
+            <Bug size={18} />
+            <p className="m-1 text-xs">Report Issue</p>
+          </div>
 
+          <div className="rounded-full bg-black border-t border-gray-200 z-50 p-1 flex mt-3 cursor-pointer" onClick={() => handleSignOut()}>
+            <SignOut size={22} className="text-white" />
+          </div>
+        </div>
       </header>
 
       <main className="max-w-7xl mx-auto">
@@ -135,16 +144,16 @@ export default function Dashboard() {
                 {/* avatar */}
                 <div className="shrink-0 h-full flex items-center">
                   <img
-                    src={s.avatar}
+                    src={s.photo_url || "/profile-icon.png"}
                     alt={s.name}
-                    onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/64")}
+                    onError={(e) => (e.currentTarget.src = "/profile-icon.png")}
                     className="w-22 h-22 md:w-20 md:h-20  rounded-full object-cover shadow-sm"
                   />
                   {/* verified tick — positioned relative to avatar */}
                   <img
                     src="/bluetick.png"
                     alt="verified"
-                    className="w-7 h-7 md:w-6 md:h-6 mt-15 ml-15 md:ml-12 absolute "
+                    className="w-5 h-5 md:w-6 md:h-6 mt-18 ml-15 md:ml-12 absolute "
                   />
                 </div>
 

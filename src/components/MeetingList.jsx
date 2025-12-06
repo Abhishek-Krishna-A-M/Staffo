@@ -51,6 +51,14 @@ export default function MeetingList({ meetings, userId, onEdit }) {
       return dateB - dateA; // Most recent past first
     }
   });
+  //Date formatter
+  const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  const opts = { day: 'numeric', month: 'long', year: 'numeric' }; // -> "6 December 2025"
+  return d.toLocaleDateString('en-GB', opts);
+};
+
 
   return (
     <div className="space-y-4 mb-25">
@@ -102,7 +110,7 @@ export default function MeetingList({ meetings, userId, onEdit }) {
 
                 <div className="mt-3 text-sm text-gray-600 flex flex-col gap-1">
                   <p className="flex flex-row gap-1">
-                    <Calendar size={20} /> {m.meeting_date}
+                    <Calendar size={20} /> {formatDate(m.meeting_date)}
                   </p>
                   <p className="flex flex-row gap-1">
                     <Timer size={20} /> {m.start_time} – {m.end_time}
