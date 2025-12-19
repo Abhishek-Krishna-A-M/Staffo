@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { MapPin, ClockAfternoon, CircleNotch, Phone, Envelope } from "@phosphor-icons/react";
+import { MapPin, ClockAfternoon, CircleNotch, Phone, Envelope, HouseLine, CalendarSlash } from "@phosphor-icons/react";
 import { supabase } from "../utils/supabase";
 
 /* ------------------ Helpers ------------------ */
@@ -32,6 +32,8 @@ const STATUS_META = {
   busy: { label: "Busy", bg: "bg-yellow-100", text: "text-yellow-800", dot: "bg-yellow-500" },
   on_leave: { label: "On Leave", bg: "bg-gray-100", text: "text-gray-800", dot: "bg-gray-500" },
   in_meeting: { label: "In Meeting", bg: "bg-red-100", text: "text-red-800", dot: "bg-red-500" },
+  holiday: { label: "Holiday", bg: "bg-blue-100", text: "text-blue-800", dot: "bg-blue-500" },
+  closed: { label: "College Closed", bg: "bg-slate-200", text: "text-slate-700", dot: "bg-slate-400" },
 };
 
 function getDayKeyFromDateObj(d) {
@@ -75,9 +77,15 @@ export default function StaffPopup({ staff, onClose = () => { } }) {
   const todayDateIso = toISODateOnly(new Date());
   const dayKey = getDayKeyFromDateObj(new Date());
   const meta = STATUS_META[staff.status] || STATUS_META.available;
+  const isGlobalOff = staff.status === 'holiday' || staff.status === 'closed';
 
   useEffect(() => {
     if (!staff?.id) return;
+    // Don't fetch schedule data if college is closed/holiday
+    if (isGlobalOff) {
+      setLoading(false);
+      return;
+    }
 
     const loadAllData = async () => {
       setLoading(true);
@@ -91,7 +99,7 @@ export default function StaffPopup({ staff, onClose = () => { } }) {
     };
 
     loadAllData();
-  }, [staff?.id, todayDateIso]);
+  }, [staff?.id, todayDateIso, isGlobalOff]);
 
   const loadProfileData = async () => {
     if (!staff.profile_id) return;
@@ -215,7 +223,6 @@ export default function StaffPopup({ staff, onClose = () => { } }) {
             <span className={`text-sm font-medium ${meta.text}`}>{meta.label}</span>
           </div>
 
-          {/* Contact Icons from Profile Table */}
           <div className="mt-5 flex gap-4">
             {profile?.phone && (
               <a href={`tel:${profile.phone}`} className="p-3 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
@@ -241,6 +248,25 @@ export default function StaffPopup({ staff, onClose = () => { } }) {
           <div className="flex flex-col items-center justify-center py-10">
             <CircleNotch size={32} className="animate-spin text-gray-400" />
             <p className="text-sm text-gray-500 mt-2">Checking schedule...</p>
+          </div>
+        ) : isGlobalOff ? (
+          /* SHOW THIS INSTEAD OF SCHEDULE IF HOLIDAY/CLOSED */
+          <div className="py-12 flex flex-col items-center justify-center text-center">
+            <div className="p-4 bg-gray-50 rounded-full mb-4">
+               {staff.status === 'holiday' ? 
+                <CalendarSlash size={40} weight="duotone" className="text-blue-500" /> : 
+                <HouseLine size={40} weight="duotone" className="text-slate-500" />
+               }
+            </div>
+            <h3 className="text-lg font-bold text-gray-800">
+              {staff.status === 'holiday' ? 'On Holiday' : 'College Closed'}
+            </h3>
+            <p className="text-sm text-gray-500 mt-1 max-w-[250px]">
+              {staff.status === 'holiday' ? 
+                `Routine schedules are suspended for ${staff.location || 'holiday'}.` : 
+                'Academic schedules are currently unavailable as the college is closed.'
+              }
+            </p>
           </div>
         ) : (
           <>
