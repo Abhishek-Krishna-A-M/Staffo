@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { supabase } from "./utils/supabase";
 
 import Login from "./pages/Login";
@@ -14,6 +14,7 @@ import Download from "./pages/Download";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleRoute from "./components/RoleRoute";
+import NavBar from "./components/NavBar"; // Import NavBar here
 
 import toast from "react-hot-toast";
 
@@ -41,22 +42,37 @@ function MeetingDashboardWrapper() {
 }
 
 // -----------------------------------------
+// Landing Redirect Wrapper
+// -----------------------------------------
+function LandingWrapper({ user }) {
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <Landing />;
+}
+
+// -----------------------------------------
 // Main App
 // -----------------------------------------
 export default function App() {
   const [user, setUser] = useState(null);
   const [staffId, setStaffId] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // ------------------------------
   // Auth session listener
   // ------------------------------
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => setUser(session?.user ?? null)
+      (_event, session) => {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
     );
 
     return () => listener.subscription.unsubscribe();
@@ -110,16 +126,27 @@ export default function App() {
     return () => supabase.removeChannel(channel);
   }, [staffId]);
 
+  if (loading) return null;
+
   // ------------------------------
   // Routes
   // ------------------------------
   return (
     <>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
+      {/* Conditional NavBar: 
+          Only show if a user is logged in AND they are identified as Staff/Admin (staffId exists).
+          Students will not see the NavBar.
+      */}
+      {user && staffId && <NavBar />}
 
-        {/* Student/Admin Dashboard */}
+      <Routes>
+        <Route path="/" element={<LandingWrapper user={user} />} />
+
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/dashboard" replace /> : <Login />}
+        />
+
         <Route
           path="/dashboard"
           element={
@@ -129,7 +156,6 @@ export default function App() {
           }
         />
 
-        {/* Staff Dashboard */}
         <Route
           path="/staffdashboard"
           element={
@@ -141,7 +167,6 @@ export default function App() {
           }
         />
 
-        {/* Meetings page (requires staffId) */}
         <Route
           path="/meetings"
           element={
