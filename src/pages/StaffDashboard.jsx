@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
-import { MapPin, CalendarPlus, PencilSimple, Plus, CalendarCheck, ClockAfternoon } from "@phosphor-icons/react";
+import {
+  MapPin,
+  PencilSimple,
+  Plus,
+  ClockAfternoon,
+  CalendarBlank,
+  CircleNotch
+} from "@phosphor-icons/react";
 import { supabase } from "../utils/supabase";
 import Timetable from "../components/Timetable";
 import PhotoUploader from "../components/PhotoUploader";
@@ -17,29 +24,25 @@ const STATUS_META = {
 };
 
 const TITLE_OPTIONS = ["Mr", "Mrs", "Ms", "Dr", "Prof"];
-// Statuses that staff are allowed to manually select
 const MANUAL_STATUS_KEYS = ["available", "busy", "in_class", "on_leave", "in_meeting"];
 
 export default function StaffDashboard() {
   const navigate = useNavigate();
-  const [authUser, setAuthUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [staff, setStaff] = useState(null);
-
   const [loading, setLoading] = useState(true);
   const [showSetup, setShowSetup] = useState(false);
   const [showTimetable, setShowTimetable] = useState(false);
   const [showDpUploader, setShowDpUploader] = useState(false);
   const [showSuperStatus, setShowSuperStatus] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   useEffect(() => {
     let staffSubscription;
-
     const load = async () => {
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData?.session?.user;
       if (!user) return;
-      setAuthUser(user);
 
       const { data: profileData } = await supabase.from("profiles").select("*").eq("id", user.id).single();
       setProfile(profileData);
@@ -47,33 +50,15 @@ export default function StaffDashboard() {
       const { data: staffData } = await supabase.from("staff").select("*").eq("profile_id", user.id).single();
       setStaff(staffData);
 
-      if (!staffData?.dept?.trim() || !profileData?.phone?.trim()) {
-        setShowSetup(true);
-      }
+      if (!staffData?.dept?.trim() || !profileData?.phone?.trim()) setShowSetup(true);
       setLoading(false);
 
-      staffSubscription = supabase
-        .channel(`staff_own_${staffData.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "staff",
-            filter: `id=eq.${staffData.id}`,
-          },
-          (payload) => {
-            setStaff(payload.new);
-          }
-        )
-        .subscribe();
+      staffSubscription = supabase.channel(`staff_own_${staffData.id}`)
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "staff", filter: `id=eq.${staffData.id}` },
+          (p) => setStaff(p.new)).subscribe();
     };
-
     load();
-
-    return () => {
-      if (staffSubscription) supabase.removeChannel(staffSubscription);
-    };
+    return () => { if (staffSubscription) supabase.removeChannel(staffSubscription); };
   }, []);
 
   if (loading) return (
@@ -82,45 +67,36 @@ export default function StaffDashboard() {
       <p className="mt-5 text-gray-500">Setting up your dashboard...</p>
     </div>
   );
-  if (!profile || !staff) return null;
 
+  if (!profile || !staff) return null;
   const meta = STATUS_META[staff.status] || STATUS_META.on_leave;
 
-  const updateStatus = async (value) => {
-    setStaff((prev) => ({ ...prev, status: value, manual_override: true }));
-    await supabase.from("staff").update({ status: value, manual_override: true }).eq("id", staff.id);
+  const updateStatus = async (val) => {
+    if (val === 'on_leave') return setShowLeaveModal(true);
+    setStaff(prev => ({ ...prev, status: val, manual_override: true }));
+    await supabase.from("staff").update({ status: val, manual_override: true }).eq("id", staff.id);
   };
 
-  const updateLocation = async (value) => {
-    setStaff((prev) => ({ ...prev, location: value, manual_location: true }));
-    await supabase.from("staff").update({ location: value, manual_location: true }).eq("id", staff.id);
+  const updateLocation = async (val) => {
+    setStaff(prev => ({ ...prev, location: val, manual_location: true }));
+    await supabase.from("staff").update({ location: val, manual_location: true }).eq("id", staff.id);
   };
 
-  const updateStaffField = async (field, value) => {
-    setStaff((prev) => ({ ...prev, [field]: value }));
-    await supabase.from("staff").update({ [field]: value }).eq("id", staff.id);
+  const updateStaffField = async (f, v) => {
+    setStaff(prev => ({ ...prev, [f]: v }));
+    await supabase.from("staff").update({ [f]: v }).eq("id", staff.id);
   };
 
-  const updateProfileField = async (field, value) => {
-    setProfile((prev) => ({ ...prev, [field]: value }));
-    await supabase.from("profiles").update({ [field]: value }).eq("id", profile.id);
+  const updateProfileField = async (f, v) => {
+    setProfile(prev => ({ ...prev, [f]: v }));
+    await supabase.from("profiles").update({ [f]: v }).eq("id", profile.id);
   };
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 pb-10 pt-6 mb-20">
-      {showDpUploader && (
-        <PhotoUploader
-          show={showDpUploader}
-          onClose={() => setShowDpUploader(false)}
-          staffId={staff?.id}
-          updateStaffField={updateStaffField}
-          updateProfileField={updateProfileField}
-        />
-      )}
-
-      {showSuperStatus && (
-        <SuperStatusManager staffId={staff.id} onClose={() => setShowSuperStatus(false)} />
-      )}
+      {showDpUploader && <PhotoUploader show={showDpUploader} onClose={() => setShowDpUploader(false)} staffId={staff?.id} updateStaffField={updateStaffField} updateProfileField={updateProfileField} />}
+      {showSuperStatus && <SuperStatusManager staffId={staff.id} onClose={() => setShowSuperStatus(false)} />}
+      {showLeaveModal && <OnLeaveModal staffId={staff.id} onClose={() => setShowLeaveModal(false)} onSuccess={() => setShowLeaveModal(false)} />}
 
       <header className="max-w-full mx-auto mb-6 flex items-center justify-between">
         <div className="flex flex-col gap-5">
@@ -133,12 +109,8 @@ export default function StaffDashboard() {
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-5">
             <div className="relative">
-              <img src={staff.photo_url || "/profile-icon.png"} className="w-20 h-20 rounded-full object-cover" />
-              <PencilSimple
-                size={25}
-                className="cursor-pointer absolute bottom-0 right-0 bg-black text-white rounded-full p-1 border-2 border-white"
-                onClick={() => setShowDpUploader(true)}
-              />
+              <img src={staff.photo_url || "/profile-icon.png"} className="w-20 h-20 rounded-full object-cover shadow-inner" />
+              <PencilSimple size={25} className="cursor-pointer absolute bottom-0 right-0 bg-black text-white rounded-full p-1 border-2 border-white" onClick={() => setShowDpUploader(true)} />
             </div>
             <div>
               <h2 className="text-lg font-semibold text-gray-800">{staff.name}</h2>
@@ -152,11 +124,11 @@ export default function StaffDashboard() {
         </div>
 
         <div className="flex flex-row justify-center gap-4">
-          <div className="bg-white text-black border rounded-full px-4 py-2 flex items-center gap-2 cursor-pointer shadow-sm" onClick={() => setShowSetup(true)}>
+          <div className="bg-white text-black border rounded-full px-4 py-2 flex items-center gap-2 cursor-pointer shadow-sm hover:bg-gray-50 transition-colors" onClick={() => setShowSetup(true)}>
             <PencilSimple size={18} />
             <p className="text-sm font-medium">Edit Details</p>
           </div>
-          <div className="bg-yellow-400 text-black border border-yellow-500 rounded-full px-4 py-2 flex items-center gap-2 cursor-pointer shadow-sm" onClick={() => setShowSuperStatus(true)}>
+          <div className="bg-yellow-400 text-black border border-yellow-500 rounded-full px-4 py-2 flex items-center gap-2 cursor-pointer shadow-sm hover:bg-yellow-500 transition-colors" onClick={() => setShowSuperStatus(true)}>
             <ClockAfternoon size={18} weight="bold" />
             <p className="text-sm font-bold">Super Status</p>
           </div>
@@ -164,31 +136,13 @@ export default function StaffDashboard() {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Update Status</h3>
-
-          {/* Informational badge when system override is active */}
-          {(staff.status === 'holiday' || staff.status === 'closed') && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center gap-2">
-              <span className="text-xs font-medium text-blue-700 italic">
-                The college is currently {staff.status === 'holiday' ? 'on holiday' : 'closed'}. Changes below will apply when the college re-opens.
-              </span>
-            </div>
-          )}
-
           <div className="grid grid-cols-2 gap-4">
-            {Object.entries(STATUS_META)
-              // Only show the manual statuses as clickable buttons
-              .filter(([key]) => MANUAL_STATUS_KEYS.includes(key))
-              .map(([key, m]) => (
-                <button
-                  key={key}
-                  onClick={() => updateStatus(key)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition cursor-pointer
-                    ${staff.status === key ? "border-black bg-gray-100 font-bold" : "border-gray-200 bg-white"}`}
-                >
-                  <span className={`w-3 h-3 rounded-full ${m.dot}`} />
-                  <span className="text-sm font-medium">{m.label}</span>
-                </button>
-              ))}
+            {Object.entries(STATUS_META).filter(([key]) => MANUAL_STATUS_KEYS.includes(key)).map(([key, m]) => (
+              <button key={key} onClick={() => updateStatus(key)} className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition cursor-pointer ${staff.status === key ? "border-black bg-gray-100 font-bold" : "border-gray-200 bg-white"}`}>
+                <span className={`w-3 h-3 rounded-full ${m.dot}`} />
+                <span className="text-sm font-medium">{m.label}</span>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -199,37 +153,86 @@ export default function StaffDashboard() {
             <MapPin size={20} className="text-black" />
             <span className="font-bold text-gray-700">{staff.location || "No location set"}</span>
           </div>
-          <input
-            type="text"
-            value={staff.location || ""}
-            disabled={staff.status === 'closed' || staff.status === 'holiday'}
-            onChange={(e) => updateLocation(e.target.value)}
-            placeholder={staff.status === 'closed' ? "Disabled while closed" : "Enter your room / block"}
-            className="w-full rounded-xl px-4 py-3 border border-gray-300 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
-          />
+          <input type="text" value={staff.location || ""} disabled={staff.status === 'closed' || staff.status === 'holiday'} onChange={(e) => updateLocation(e.target.value)} placeholder="Enter your room / block" className="w-full rounded-xl px-4 py-3 border border-gray-300 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50" />
         </div>
 
-        <button
-          onClick={() => setShowTimetable(true)}
-          className="w-full bg-white text-black border border-black border-dashed rounded-xl font-medium shadow-md flex flex-col items-center justify-center py-10 cursor-pointer"
-        >
+        <button onClick={() => setShowTimetable(true)} className="w-full bg-white text-black border border-black border-dashed rounded-xl font-medium shadow-md flex flex-col items-center justify-center py-10 cursor-pointer hover:bg-gray-50 transition-colors">
           <div className="bg-black rounded-full p-2"><Plus size={24} weight="bold" className="text-white" /></div>
           <p className="mt-3 font-bold">Manage Timetable</p>
           <p className="text-xs w-[80%] text-gray-500 mt-2 text-center">Update your daily schedule for automatic status changes.</p>
         </button>
       </main>
 
-      {showSetup && (
-        <SetupModal
-          staff={staff}
-          profile={profile}
-          updateStaff={updateStaffField}
-          updateProfile={updateProfileField}
-          onClose={() => setShowSetup(false)}
-        />
-      )}
-
+      {showSetup && <SetupModal staff={staff} profile={profile} updateStaff={updateStaffField} updateProfile={updateProfileField} onClose={() => setShowSetup(false)} />}
       {showTimetable && <Timetable staffId={staff.id} onClose={() => setShowTimetable(false)} />}
+    </div>
+  );
+}
+
+function OnLeaveModal({ staffId, onClose, onSuccess }) {
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startTime, setStartTime] = useState("09:00");
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endTime, setEndTime] = useState("17:00");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSave = async () => {
+    if (!startDate || !endDate) return alert("Please select dates.");
+    setIsSubmitting(true);
+
+    const startTimestamp = `${startDate}T${startTime}:00`;
+    const endTimestamp = `${endDate}T${endTime}:00`;
+
+    // Note table name: holidays
+    const { error } = await supabase.from("holidays").insert([
+      {
+        staff_id: staffId,
+        start_at: startTimestamp,
+        end_at: endTimestamp,
+        reason: 'Staff Leave'
+      }
+    ]);
+
+    if (!error) {
+      await supabase.from("staff").update({ status: "on_leave", manual_override: true }).eq("id", staffId);
+      onSuccess();
+    } else {
+      console.error("Supabase Error:", error);
+      alert(`Error: ${error.message}`);
+    }
+    setIsSubmitting(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-5 backdrop-blur-sm">
+      <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-lg">
+        <div className="flex items-center gap-2 mb-4 text-gray-800">
+          <CalendarBlank size={24} weight="bold" />
+          <h2 className="text-lg font-semibold">Schedule Your Leave</h2>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase ml-1">Leave Starts</label>
+            <div className="flex gap-2 mt-1">
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="flex-1 px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-sm" />
+              <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-24 px-2 py-2 rounded-xl border border-gray-300 bg-gray-50 text-sm" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-bold text-gray-500 uppercase ml-1">Leave Ends</label>
+            <div className="flex gap-2 mt-1">
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="flex-1 px-3 py-2 rounded-xl border border-gray-300 bg-gray-50 text-sm" />
+              <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-24 px-2 py-2 rounded-xl border border-gray-300 bg-gray-50 text-sm" />
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end mt-6 gap-3">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-medium">Cancel</button>
+          <button onClick={handleSave} disabled={isSubmitting} className="px-4 py-2 bg-black text-white rounded-xl text-sm font-medium flex items-center gap-2">
+            {isSubmitting ? <CircleNotch className="animate-spin" /> : "Confirm Leave"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -258,7 +261,7 @@ function SetupModal({ staff, profile, updateStaff, updateProfile, onClose }) {
         <h2 className="text-lg font-semibold mb-4">Complete Your Profile</h2>
         <div className="space-y-4">
           <select value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-2 rounded-xl border border-gray-300 bg-gray-50">
-            {TITLE_OPTIONS.map((t) => <option key={t}>{t}</option>)}
+            {TITLE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
           <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your Name" className="w-full px-4 py-2 rounded-xl border border-gray-300 bg-gray-50" />
           <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone Number" className="w-full px-4 py-2 rounded-xl border border-gray-300 bg-gray-50" />
