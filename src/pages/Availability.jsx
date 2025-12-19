@@ -236,7 +236,7 @@ export default function Availability() {
   /* ---------- existing analyze logic (unchanged) ---------- */
   const renderBusyDetails = (details) => {
     if (!details) return null;
-    
+
     if (Array.isArray(details.meta)) {
       return (
         <div className="space-y-1">
@@ -250,13 +250,13 @@ export default function Availability() {
             } else if (item && typeof item === "object" && item.type === "meeting") {
               return (
                 <div key={idx} className="text-xs text-gray-700">
-                  <strong>Meeting</strong> — {item.title} ({item.start_time.slice(0,5)} - {item.end_time.slice(0,5)}) @ {item.location || "—"}
+                  <strong>Meeting</strong> — {item.title} ({item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}) @ {item.location || "—"}
                 </div>
               );
             } else if (item && typeof item === "object") {
               return (
                 <div key={idx} className="text-xs text-gray-700">
-                  <strong>Meeting</strong> — {item.title || "Untitled"} ({(item.start_time || "").slice(0,5)} - {(item.end_time || "").slice(0,5)}) @ {item.location || "—"}
+                  <strong>Meeting</strong> — {item.title || "Untitled"} ({(item.start_time || "").slice(0, 5)} - {(item.end_time || "").slice(0, 5)}) @ {item.location || "—"}
                 </div>
               );
             } else {
@@ -277,7 +277,7 @@ export default function Availability() {
       const m = details.meta;
       return (
         <div className="text-xs text-gray-700">
-          <strong>Meeting</strong> — {m.title || "Untitled"} ({(m.start_time || "").slice(0,5)} - {(m.end_time || "").slice(0,5)}) @ {m.location || "—"}
+          <strong>Meeting</strong> — {m.title || "Untitled"} ({(m.start_time || "").slice(0, 5)} - {(m.end_time || "").slice(0, 5)}) @ {m.location || "—"}
         </div>
       );
     }
@@ -289,7 +289,7 @@ export default function Availability() {
     const dates = [];
     const startDt = new Date(start);
     const endDt = new Date(end);
-    
+
     for (let dt = new Date(startDt); dt <= endDt; dt.setDate(dt.getDate() + 1)) {
       const isoDate = dt.toISOString().slice(0, 10);
       const dayKey = getDayKeyFromDate(isoDate);
@@ -308,10 +308,10 @@ export default function Availability() {
     }
 
     setAnalyzing(true);
-    
+
     // Get all dates in the range (excluding Sundays)
     const dateRange = getDateRange(startDate, endDate);
-    
+
     if (dateRange.length === 0) {
       alert("No valid dates in the selected range (excluding Sundays)");
       setAnalyzing(false);
@@ -396,11 +396,11 @@ export default function Availability() {
 
     // 5) compute busy periods per date separately
     const perDateDataLocal = {};
-    
+
     dateRange.forEach((dateIso) => {
       const dayKey = getDayKeyFromDate(dateIso);
       const PERIOD_TIME_MAP = getPeriodTimeMap(dayKey);
-      
+
       const perStaffBusyLocal = {};
       const perPeriodDetailsLocal = {};
       for (let p = 1; p <= 7; p++) perPeriodDetailsLocal[p] = {};
@@ -408,7 +408,7 @@ export default function Availability() {
       selectedStaffIds.forEach((sid) => {
         const sBusy = new Set();
         const ttRow = ttMap[sid];
-        
+
         // Check timetable busy periods for this date
         const ttBusy = busyPeriodsFromTimetableRow(ttRow, dayKey);
         ttBusy.forEach((p) => {
@@ -427,7 +427,7 @@ export default function Availability() {
               sBusy.add(pt.period);
               const prev = perPeriodDetailsLocal[pt.period][sid];
               const meetingInfo = { type: "meeting", meetingId: m.id, title: m.title, start_time: m.start_time, end_time: m.end_time, location: m.location };
-              
+
               if (prev) {
                 if (!Array.isArray(prev.meta)) prev.meta = [prev.meta];
                 prev.meta.push(meetingInfo);
@@ -444,7 +444,7 @@ export default function Availability() {
 
         perStaffBusyLocal[sid] = sBusy;
       });
-      
+
       // Calculate available count for this date
       const availCountLocal = {};
       for (let p = 1; p <= 7; p++) {
@@ -455,7 +455,7 @@ export default function Availability() {
         });
         availCountLocal[p] = free;
       }
-      
+
       perDateDataLocal[dateIso] = {
         perStaffBusy: perStaffBusyLocal,
         availableCount: availCountLocal,
@@ -476,12 +476,12 @@ export default function Availability() {
       });
       periodFrequency[p] = freeOnAllDates ? dateRange.length : 0;
     }
-    
+
     const exactCommon = [];
     for (let p = 1; p <= 7; p++) {
       if (periodFrequency[p] === dateRange.length) exactCommon.push(p);
     }
-    
+
     let maxFreeDates = 0;
     for (let p = 1; p <= 7; p++) maxFreeDates = Math.max(maxFreeDates, periodFrequency[p]);
     const fallbackBest = [];
@@ -619,7 +619,7 @@ export default function Availability() {
                 Clear selection
               </button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
               <div className="col-span-1 md:col-span-2 bg-white rounded-2xl p-3 shadow-sm max-h-64 overflow-auto">
                 {loadingStaff ? (
@@ -698,7 +698,7 @@ export default function Availability() {
                 const dayKey = dateData.dayKey;
                 const periodTimes = getPeriodTimeMap(dayKey);
                 const dayName = getDayKeyFromDate(dateIso);
-                
+
                 return (
                   <div key={dateIso} className="border rounded-xl p-3">
                     <div className="text-xs font-medium text-gray-600 mb-2">
@@ -735,7 +735,7 @@ export default function Availability() {
               <div>
                 <div className="text-sm font-medium">Period {activePeriod.period} details for {activePeriod.date}</div>
                 <div className="text-xs text-gray-500">
-                  Time: {getPeriodTimeMap(perDateData[activePeriod.date].dayKey)[activePeriod.period - 1].start.slice(0,5)} - {getPeriodTimeMap(perDateData[activePeriod.date].dayKey)[activePeriod.period - 1].end.slice(0,5)}
+                  Time: {getPeriodTimeMap(perDateData[activePeriod.date].dayKey)[activePeriod.period - 1].start.slice(0, 5)} - {getPeriodTimeMap(perDateData[activePeriod.date].dayKey)[activePeriod.period - 1].end.slice(0, 5)}
                 </div>
               </div>
               <div>

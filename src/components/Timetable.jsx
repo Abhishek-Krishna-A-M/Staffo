@@ -117,21 +117,21 @@ export default function Timetable({ staffId, onClose }) {
         })}
 
         <div className="flex flex-row gap-2 justify-end">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-gray-200 cursor-pointer"
-            >
-              Close
-            </button>
-            <button
-              onClick={saveAll}
-              className="px-4 py-2 bg-black text-white rounded-xl cursor-pointer"
-            >
-              Save
-            </button>
-            
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-gray-200 cursor-pointer"
+          >
+            Close
+          </button>
+          <button
+            onClick={saveAll}
+            className="px-4 py-2 bg-black text-white rounded-xl cursor-pointer"
+          >
+            Save
+          </button>
+
         </div>
-        
+
 
       </div>
     </div>
