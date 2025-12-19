@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { MapPin, ClockAfternoon, CircleNotch } from "@phosphor-icons/react";
+import { MapPin, ClockAfternoon, CircleNotch, Phone, Envelope } from "@phosphor-icons/react";
 import { supabase } from "../utils/supabase";
 
-/* reuse period times (same mapping used elsewhere) */
+/* ------------------ Helpers ------------------ */
+
 function getPeriodTimeMap(dayKey) {
   const monThu = [
     { period: 1, start: "09:00:00", end: "09:50:00" },
@@ -22,9 +23,7 @@ function getPeriodTimeMap(dayKey) {
     { period: 6, start: "14:40:00", end: "15:20:00" },
     { period: 7, start: "15:20:00", end: "16:00:00" },
   ];
-  if (!dayKey) return monThu;
-  if (dayKey === "friday") return fri;
-  return monThu;
+  return dayKey === "friday" ? fri : monThu;
 }
 
 const STATUS_META = {
@@ -56,14 +55,15 @@ function formatTo12(timeStr) {
   if (parts.length < 2) return timeStr;
   let hh = parseInt(parts[0], 10);
   const mm = (parts[1] || "00").padStart(2, "0");
-  if (Number.isNaN(hh)) return timeStr;
   const ampm = hh >= 12 ? "PM" : "AM";
-  hh = hh % 12;
-  if (hh === 0) hh = 12;
+  hh = hh % 12 || 12;
   return `${hh}:${mm} ${ampm}`;
 }
 
-export default function StaffPopup({ staff, onClose = () => { }, onViewMap = () => { } }) {
+/* ------------------ Main Component ------------------ */
+
+export default function StaffPopup({ staff, onClose = () => { } }) {
+  const [profile, setProfile] = useState(null);
   const [todayClasses, setTodayClasses] = useState([]);
   const [todayMeetings, setTodayMeetings] = useState([]);
   const [superStatuses, setSuperStatuses] = useState([]);
@@ -74,14 +74,15 @@ export default function StaffPopup({ staff, onClose = () => { }, onViewMap = () 
 
   const todayDateIso = toISODateOnly(new Date());
   const dayKey = getDayKeyFromDateObj(new Date());
+  const meta = STATUS_META[staff.status] || STATUS_META.available;
 
   useEffect(() => {
     if (!staff?.id) return;
 
     const loadAllData = async () => {
       setLoading(true);
-      // Run all fetches in parallel to reduce wait time
       await Promise.all([
+        loadProfileData(),
         loadTimetableDynamic(),
         loadMeetingsDynamic(),
         loadSuperStatuses()
@@ -92,132 +93,114 @@ export default function StaffPopup({ staff, onClose = () => { }, onViewMap = () 
     loadAllData();
   }, [staff?.id, todayDateIso]);
 
+  const loadProfileData = async () => {
+    if (!staff.profile_id) return;
+    const { data } = await supabase
+      .from("profiles")
+      .select("email, phone")
+      .eq("id", staff.profile_id)
+      .single();
+    if (data) setProfile(data);
+  };
+
   const loadSuperStatuses = async () => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("super_statuses")
       .select("*")
       .eq("staff_id", staff.id)
       .eq("status_date", todayDateIso)
       .order("start_time", { ascending: true });
 
-    if (!error && data) {
-      const normalized = data.map(s => ({
+    if (data) {
+      setSuperStatuses(data.map(s => ({
         ...s,
         start_display: formatTo12(s.start_time),
         end_display: formatTo12(s.end_time)
-      }));
-      setSuperStatuses(normalized);
+      })));
     }
   };
 
   const loadTimetableDynamic = async () => {
     const todayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
     try {
-      const { data: perDayRows, error: perDayErr } = await supabase
+      const { data: perDayRows } = await supabase
         .from("timetable")
         .select("start_time, end_time, place")
         .eq("staff_id", staff.id)
         .eq("day", todayName)
         .order("start_time", { ascending: true });
 
-      if (!perDayErr && Array.isArray(perDayRows) && perDayRows.length > 0) {
-        const normalized = perDayRows.map((r) => {
-          const rawStart = r.start_time ? (r.start_time.length >= 5 ? r.start_time.slice(0, 8) : r.start_time) : "";
-          const rawEnd = r.end_time ? (r.end_time.length >= 5 ? r.end_time.slice(0, 8) : r.end_time) : "";
-          return {
-            place: r.place || "—",
-            start_display: formatTo12(rawStart),
-            end_display: formatTo12(rawEnd),
-            start_raw: rawStart,
-            end_raw: rawEnd,
-            source: "timetable_row",
-          };
-        });
-        setTodayClasses(normalized);
+      if (perDayRows?.length > 0) {
+        setTodayClasses(perDayRows.map(r => ({
+          place: r.place || "—",
+          start_display: formatTo12(r.start_time),
+          end_display: formatTo12(r.end_time),
+        })));
         return;
       }
 
-      const { data: arrayRow, error: arrayErr } = await supabase
+      const { data: arrayRow } = await supabase
         .from("timetable")
-        .select("staff_id, monday, tuesday, wednesday, thursday, friday, saturday")
+        .select("*")
         .eq("staff_id", staff.id)
         .maybeSingle();
 
-      if (arrayErr || !arrayRow) {
-        setTodayClasses([]);
-        return;
+      if (arrayRow && dayKey) {
+        const dayArr = arrayRow[dayKey] || [];
+        const periodTimes = getPeriodTimeMap(dayKey);
+        const classes = dayArr
+          .map((place, i) => {
+            if (!place || place.trim() === "") return null;
+            const pt = periodTimes[i] || { start: "", end: "" };
+            return {
+              place,
+              start_display: formatTo12(pt.start),
+              end_display: formatTo12(pt.end),
+            };
+          })
+          .filter(Boolean);
+        setTodayClasses(classes);
       }
-
-      const dayArr = (dayKey && arrayRow[dayKey]) || [];
-      const periodTimes = getPeriodTimeMap(dayKey);
-      const classes = [];
-      for (let i = 0; i < Math.min(7, dayArr.length); i++) {
-        const place = dayArr[i];
-        if (typeof place === "string" && place.trim() !== "") {
-          const pt = periodTimes[i] || { start: "", end: "" };
-          classes.push({
-            place: place,
-            start_display: pt.start ? formatTo12(pt.start) : "",
-            end_display: pt.end ? formatTo12(pt.end) : "",
-            start_raw: pt.start,
-            end_raw: pt.end,
-            source: "timetable_array",
-            period: i + 1,
-          });
-        }
-      }
-      setTodayClasses(classes);
     } catch (err) {
       setTodayClasses([]);
     }
   };
 
   const loadMeetingsDynamic = async () => {
-    try {
-      const hostQ = supabase.from("meetings").select("*").eq("host_staff_id", staff.id).eq("meeting_date", todayDateIso);
-      const partQ = supabase.from("meeting_participants").select(`meeting_id, meetings (*)`).eq("staff_id", staff.id);
+    const hostQ = supabase.from("meetings").select("*").eq("host_staff_id", staff.id).eq("meeting_date", todayDateIso);
+    const partQ = supabase.from("meeting_participants").select(`meetings (*)`).eq("staff_id", staff.id);
 
-      const [hostRes, partRes] = await Promise.all([hostQ, partQ]);
-      let meetings = (hostRes.data || []);
-      if (partRes.data) {
-        const fromParts = partRes.data.map((r) => r.meetings).filter((m) => m && m.meeting_date === todayDateIso);
-        meetings = meetings.concat(fromParts);
-      }
-
-      const seen = new Set();
-      const deduped = meetings.filter((m) => {
-        if (!m?.id || seen.has(m.id)) return false;
-        seen.add(m.id);
-        return true;
-      });
-
-      deduped.sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
-      const normalized = deduped.map((m) => ({
-        ...m,
-        start_time_raw: m.start_time,
-        end_time_raw: m.end_time,
-        start_time: formatTo12(m.start_time),
-        end_time: formatTo12(m.end_time),
-      }));
-
-      setTodayMeetings(normalized);
-      const now = new Date();
-      const current = normalized.find((m) => {
-        const s = parseDateTimeLocal(todayDateIso, m.start_time_raw);
-        const e = parseDateTimeLocal(todayDateIso, m.end_time_raw);
-        return s <= now && now < e;
-      }) || null;
-      setCurrentMeeting(current);
-    } catch (err) {
-      setTodayMeetings([]);
+    const [hostRes, partRes] = await Promise.all([hostQ, partQ]);
+    let all = hostRes.data || [];
+    if (partRes.data) {
+      const guestMeetings = partRes.data.map(r => r.meetings).filter(m => m && m.meeting_date === todayDateIso);
+      all = [...all, ...guestMeetings];
     }
+
+    const unique = Array.from(new Map(all.map(m => [m.id, m])).values());
+    unique.sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
+
+    const normalized = unique.map(m => ({
+      ...m,
+      start_disp: formatTo12(m.start_time),
+      end_disp: formatTo12(m.end_time),
+    }));
+
+    setTodayMeetings(normalized);
+    const now = new Date();
+    setCurrentMeeting(normalized.find(m => {
+      const s = parseDateTimeLocal(todayDateIso, m.start_time);
+      const e = parseDateTimeLocal(todayDateIso, m.end_time);
+      return s <= now && now < e;
+    }));
   };
 
-  const meta = STATUS_META[staff.status] || STATUS_META.available;
-
   return (
-    <div className="fixed inset-0 z-1000 flex items-end md:items-center justify-center bg-black/40" onClick={onClose}>
-      <div className="relative w-full max-w-md bg-white rounded-t-2xl md:rounded-2xl p-6 shadow-lg overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center bg-black/40" onClick={onClose}>
+      <div
+        className="relative w-full max-w-md bg-white rounded-t-2xl md:rounded-2xl p-6 shadow-lg overflow-y-auto max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button onClick={onClose} className="absolute right-4 top-4 p-2 text-gray-600 hover:bg-gray-100 rounded-lg">Close</button>
         <div className="flex justify-center -mt-3 mb-5">
           <div className="w-24 h-1.5 bg-gray-200 rounded-full" />
@@ -230,6 +213,20 @@ export default function StaffPopup({ staff, onClose = () => { }, onViewMap = () 
           <div className={`mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full ${meta.bg}`}>
             <span className={`w-2.5 h-2.5 rounded-full ${meta.dot}`} />
             <span className={`text-sm font-medium ${meta.text}`}>{meta.label}</span>
+          </div>
+
+          {/* Contact Icons from Profile Table */}
+          <div className="mt-5 flex gap-4">
+            {profile?.phone && (
+              <a href={`tel:${profile.phone}`} className="p-3 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                <Phone size={22} weight="fill" />
+              </a>
+            )}
+            {profile?.email && (
+              <a href={`mailto:${profile.email}`} className="p-3 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors">
+                <Envelope size={22} weight="fill" />
+              </a>
+            )}
           </div>
         </div>
 
@@ -247,7 +244,6 @@ export default function StaffPopup({ staff, onClose = () => { }, onViewMap = () 
           </div>
         ) : (
           <>
-            {/* Super Status Section */}
             {superStatuses.length > 0 && (
               <div className="mt-6">
                 <h3 className="text-base font-semibold flex items-center gap-2">
@@ -268,7 +264,7 @@ export default function StaffPopup({ staff, onClose = () => { }, onViewMap = () 
               <div className="mt-6 p-4 rounded-xl bg-gray-50 border border-gray-200">
                 <h3 className="font-semibold text-black-800">Ongoing Meeting</h3>
                 <p className="text-sm text-black-700 mt-1">{currentMeeting.title}</p>
-                <p className="text-xs text-black-600">{currentMeeting.start_time} - {currentMeeting.end_time}</p>
+                <p className="text-xs text-black-600">{currentMeeting.start_disp} - {currentMeeting.end_disp}</p>
                 <p className="text-xs text-black-600 flex flex-row gap-1"><MapPin size={15} />{currentMeeting.location}</p>
               </div>
             )}
@@ -280,7 +276,7 @@ export default function StaffPopup({ staff, onClose = () => { }, onViewMap = () 
                 {todayMeetings.map((m) => (
                   <div key={m.id} className="p-3 border border-gray-200 rounded-xl bg-gray-50 text-sm flex flex-col">
                     <span className="font-medium">{m.title}</span>
-                    <span className="text-gray-500">{m.start_time} - {m.end_time}</span>
+                    <span className="text-gray-500">{m.start_disp} - {m.end_disp}</span>
                     <span className="text-gray-500 flex flex-row gap-1"><MapPin size={15} className="mt-0.5" /> {m.location}</span>
                   </div>
                 ))}
