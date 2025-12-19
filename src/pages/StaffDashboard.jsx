@@ -12,9 +12,13 @@ const STATUS_META = {
   busy: { label: "Busy", bg: "bg-yellow-100", text: "text-yellow-800", dot: "bg-yellow-500" },
   on_leave: { label: "On Leave", bg: "bg-gray-100", text: "text-gray-800", dot: "bg-gray-500" },
   in_meeting: { label: "In Meeting", bg: "bg-red-100", text: "text-red-800", dot: "bg-red-500" },
+  holiday: { label: "Holiday", bg: "bg-blue-100", text: "text-blue-800", dot: "bg-blue-500" },
+  closed: { label: "College Closed", bg: "bg-slate-200", text: "text-slate-700", dot: "bg-slate-400" },
 };
 
 const TITLE_OPTIONS = ["Mr", "Mrs", "Ms", "Dr", "Prof"];
+// Statuses that staff are allowed to manually select
+const MANUAL_STATUS_KEYS = ["available", "busy", "in_class", "on_leave", "in_meeting"];
 
 export default function StaffDashboard() {
   const navigate = useNavigate();
@@ -48,7 +52,6 @@ export default function StaffDashboard() {
       }
       setLoading(false);
 
-      // REALTIME SUBSCRIPTION FOR THIS SPECIFIC STAFF
       staffSubscription = supabase
         .channel(`staff_own_${staffData.id}`)
         .on(
@@ -84,7 +87,6 @@ export default function StaffDashboard() {
   const meta = STATUS_META[staff.status] || STATUS_META.on_leave;
 
   const updateStatus = async (value) => {
-    // Local update is still good for instant feedback, but Realtime will confirm it
     setStaff((prev) => ({ ...prev, status: value, manual_override: true }));
     await supabase.from("staff").update({ status: value, manual_override: true }).eq("id", staff.id);
   };
@@ -162,18 +164,31 @@ export default function StaffDashboard() {
 
         <div className="bg-white rounded-2xl p-6 shadow-sm">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Update Status</h3>
+
+          {/* Informational badge when system override is active */}
+          {(staff.status === 'holiday' || staff.status === 'closed') && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center gap-2">
+              <span className="text-xs font-medium text-blue-700 italic">
+                The college is currently {staff.status === 'holiday' ? 'on holiday' : 'closed'}. Changes below will apply when the college re-opens.
+              </span>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
-            {Object.entries(STATUS_META).map(([key, m]) => (
-              <button
-                key={key}
-                onClick={() => updateStatus(key)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition cursor-pointer
-                  ${staff.status === key ? "border-black bg-gray-100" : "border-gray-200 bg-white"}`}
-              >
-                <span className={`w-3 h-3 rounded-full ${m.dot}`} />
-                <span className="text-sm font-medium">{m.label}</span>
-              </button>
-            ))}
+            {Object.entries(STATUS_META)
+              // Only show the manual statuses as clickable buttons
+              .filter(([key]) => MANUAL_STATUS_KEYS.includes(key))
+              .map(([key, m]) => (
+                <button
+                  key={key}
+                  onClick={() => updateStatus(key)}
+                  className={`flex items-center gap-2 px-4 py-3 rounded-xl border transition cursor-pointer
+                    ${staff.status === key ? "border-black bg-gray-100 font-bold" : "border-gray-200 bg-white"}`}
+                >
+                  <span className={`w-3 h-3 rounded-full ${m.dot}`} />
+                  <span className="text-sm font-medium">{m.label}</span>
+                </button>
+              ))}
           </div>
         </div>
 
@@ -187,9 +202,10 @@ export default function StaffDashboard() {
           <input
             type="text"
             value={staff.location || ""}
+            disabled={staff.status === 'closed' || staff.status === 'holiday'}
             onChange={(e) => updateLocation(e.target.value)}
-            placeholder="Enter your room / block"
-            className="w-full rounded-xl px-4 py-3 border border-gray-300 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black"
+            placeholder={staff.status === 'closed' ? "Disabled while closed" : "Enter your room / block"}
+            className="w-full rounded-xl px-4 py-3 border border-gray-300 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
           />
         </div>
 
