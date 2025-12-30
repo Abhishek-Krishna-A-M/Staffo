@@ -1,8 +1,10 @@
-import { MapPin, Timer, Calendar, PencilSimple } from '@phosphor-icons/react';
+import { MapPin, Timer, Calendar, PencilSimple, Trash } from '@phosphor-icons/react';
 import { useState } from 'react';
+import { supabase } from '../utils/supabase';
 
 export default function MeetingList({ meetings, userId, onEdit }) {
   const [filter, setFilter] = useState('upcoming'); // 'upcoming' | 'ongoing' | 'past'
+  const [deletingId, setDeletingId] = useState(null);
 
   if (!meetings || meetings.length === 0) {
     return (
@@ -11,6 +13,46 @@ export default function MeetingList({ meetings, userId, onEdit }) {
       </div>
     );
   }
+
+  const deleteMeeting = async (meetingId, e) => {
+    e.stopPropagation();
+    
+    if (!window.confirm('Are you sure you want to delete this meeting? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingId(meetingId);
+      
+      // Delete participants first (foreign key constraint)
+      const { error: participantsError } = await supabase
+        .from('meeting_participants')
+        .delete()
+        .eq('meeting_id', meetingId);
+
+      if (participantsError) {
+        throw participantsError;
+      }
+
+      // Then delete the meeting
+      const { error: meetingError } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('id', meetingId);
+
+      if (meetingError) {
+        throw meetingError;
+      }
+
+      // Refresh the page to update the list
+      window.location.reload();
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete meeting: ' + error.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // visible: host or participant
   const visibleMeetings = meetings.filter(m => {
@@ -167,14 +209,27 @@ export default function MeetingList({ meetings, userId, onEdit }) {
                 </div>
               </div>
 
-              {/* Show Edit button only if host */}
+              {/* Show Edit and Delete buttons only if host */}
               {isHost && (
-                <div
-                  className="text-black text-sm font-medium ml-4 shrink-0 flex flex-row gap-0.5 
-                  border border-black rounded-lg px-2 py-1"
-                >
-                  <PencilSimple size={18} />
-                  <p>Edit</p>
+                <div className="flex gap-2 ml-4 shrink-0">
+                  <button
+                    onClick={() => onEdit(m)}
+                    className="text-black text-sm font-medium flex items-center gap-0.5 
+                    border border-black rounded-lg px-2 py-1 hover:bg-gray-100 transition"
+                  >
+                    <PencilSimple size={18} />
+                    <p>Edit</p>
+                  </button>
+                  
+                  <button
+                    onClick={(e) => deleteMeeting(m.id, e)}
+                    disabled={deletingId === m.id}
+                    className="text-red-600 text-sm font-medium flex items-center gap-0.5 
+                    border border-red-600 rounded-lg px-2 py-1 hover:bg-red-50 transition disabled:opacity-50"
+                  >
+                    <Trash size={18} />
+                    <p>{deletingId === m.id ? 'Deleting...' : 'Delete'}</p>
+                  </button>
                 </div>
               )}
             </button>

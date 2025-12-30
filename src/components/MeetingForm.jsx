@@ -3,11 +3,23 @@ import { supabase } from "../utils/supabase";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 
 const FILTERS = ["All", "OFFICE", "BSH", "CSE", "CY", "AD", "EEE", "ME", "CE", "ECE", "MR", "RA"];
+const LOCATION_SUGGESTIONS = [
+  "Board Room",
+  "Decennial Hall",
+  "Seminar Hall",
+  "Conference Room",
+  "Principal Office",
+  "Staff Room",
+];
+
 
 export default function MeetingForm({ staffId, meeting, onClose }) {
   const [title, setTitle] = useState(meeting?.title || "");
   const [desc, setDesc] = useState(meeting?.description || "");
-  const [date, setDate] = useState(meeting?.meeting_date || "");
+  
+  const today = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(meeting?.meeting_date || today);
+
   const [start, setStart] = useState(meeting?.start_time || "");
   const [end, setEnd] = useState(meeting?.end_time || "");
   const [location, setLocation] = useState(meeting?.location || "");
@@ -17,6 +29,9 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
+  const [showEndOptions, setShowEndOptions] = useState(false);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+
 
   // -----------------------------------------------------
   // Load staff
@@ -71,17 +86,19 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
   // -----------------------------------------------------
   // Filtered staff list
   // -----------------------------------------------------
-  const filteredStaff = useMemo(() => {
-    const q = search.toLowerCase();
-    return staffList.filter(s => {
-      const matchDept = filter === "All" ? true : s.dept === filter;
-      const matchSearch =
-        s.name.toLowerCase().includes(q) ||
-        s.dept.toLowerCase().includes(q);
+    const filteredStaff = useMemo(() => {
+      const q = search.toLowerCase();
 
-      return matchDept && matchSearch;
-    });
-  }, [staffList, filter, search]);
+      return staffList.filter(s => {
+        const dept = (s.dept || "").toLowerCase();
+        const name = (s.name || "").toLowerCase();
+
+        const matchDept = filter === "All" ? true : s.dept === filter;
+        const matchSearch = name.includes(q) || dept.includes(q);
+
+        return matchDept && matchSearch;
+      });
+    }, [staffList, filter, search]);
 
   // -----------------------------------------------------
   // Toggle participant (except host)
@@ -183,6 +200,55 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
   };
 
   // -----------------------------------------------------
+  // Time helpers (UI only)
+  // -----------------------------------------------------
+  const toMinutes = t => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  const toTime24 = mins => {
+    const h = Math.floor(mins / 60) % 24;
+    const m = mins % 60;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  };
+
+  const toTime12 = t => {
+    const [h, m] = t.split(":").map(Number);
+    const hr = h % 12 || 12;
+    const ap = h >= 12 ? "PM" : "AM";
+    return `${hr}:${String(m).padStart(2, "0")} ${ap}`;
+  };
+
+  const endOptions = useMemo(() => {
+    if (!start) return [];
+
+    const base = toMinutes(start);
+    const out = [];
+
+    for (let m = base + 10; m <= base + 6 * 60; m += 10) {
+      const dur = m - base;
+      const durLabel =
+        dur >= 60
+          ? `${Math.floor(dur / 60)}h ${dur % 60}m`
+          : `${dur} min`;
+
+      const t24 = toTime24(m);
+
+      out.push({
+        value: t24,
+        label: `${toTime12(t24)} (${durLabel})`,
+      });
+    }
+
+    return out;
+  }, [start]);
+
+
+
+
+
+  // -----------------------------------------------------
   // RENDER
   // -----------------------------------------------------
   return (
@@ -210,18 +276,86 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
             className="w-full px-4 py-3 border rounded-xl bg-gray-50" />
 
           <div className="flex gap-3">
-            <input type="time"
-              value={start} onChange={e => setStart(e.target.value)}
-              className="w-full px-4 py-3 border rounded-xl bg-gray-50" />
+            {/* Start time */}
+            <input
+              type="time"
+              value={start}
+              onChange={e => {
+                setStart(e.target.value);
+                if (!end) setEnd(e.target.value);
+              }}
+              className="w-full px-4 py-3 border rounded-xl bg-gray-50"
+            />
 
-            <input type="time"
-              value={end} onChange={e => setEnd(e.target.value)}
-              className="w-full px-4 py-3 border rounded-xl bg-gray-50" />
+            {/* End time (single control) */}
+            <div className="relative w-full">
+              <input
+                type="time"
+                value={end}
+                onChange={e => setEnd(e.target.value)}
+                onFocus={() => setShowEndOptions(true)}
+                className="w-full px-4 py-3 border rounded-xl bg-gray-50"
+              />
+
+              {/* Dropdown suggestions */}
+              {start && showEndOptions && (
+                <div className="absolute z-50 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border bg-white shadow">
+                  {endOptions.map(opt => (
+                    <button
+                      type="button"
+                      key={opt.value}
+                      onClick={() => {
+                        setEnd(opt.value);
+                        setShowEndOptions(false); // ✅ CLOSE DROPDOWN
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          <input type="text" placeholder="Location"
-            value={location} onChange={e => setLocation(e.target.value)}
-            className="w-full px-4 py-3 border rounded-xl bg-gray-50" />
+
+
+
+
+          <div className="relative ">
+            <input
+              type="text"
+              placeholder="Location"
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              onFocus={() => setShowLocationSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowLocationSuggestions(false), 200)}
+              className="w-full px-4 py-3 border rounded-xl bg-gray-50"
+            />
+
+            {showLocationSuggestions && (
+              <div className="absolute z-50 mt-1 w-full rounded-xl border bg-white shadow max-h-56 overflow-y-auto">
+                {LOCATION_SUGGESTIONS
+                  .filter(l =>
+                    !location || l.toLowerCase().includes(location.toLowerCase())
+                  )
+                  .map(l => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => {
+                        setLocation(l);
+                        setShowLocationSuggestions(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                    >
+                      {l}
+                    </button>
+                  ))}
+              </div>
+            )}
+          </div>
+
 
           {/* Search */}
           <div className="relative">
@@ -238,6 +372,7 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
           <div className="flex gap-3 overflow-x-auto pb-2">
             {FILTERS.map(f => (
               <button
+                type="button"
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1 rounded-full text-sm ${filter === f ? "bg-black text-white" : "bg-white border"}`}
@@ -258,6 +393,7 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
 
               return (
                 <button
+                type="button"
                   key={s.id}
                   onClick={() => toggleStaff(s.id)}
                   disabled={isHost}
@@ -284,11 +420,11 @@ export default function MeetingForm({ staffId, meeting, onClose }) {
 
         {/* Footer */}
         <div className="px-6 py-4 border-t flex justify-between bg-white gap-2">
-          <button onClick={onClose} className="px-4 py-2 rounded-xl bg-gray-300 cursor-pointer">
+          <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl bg-gray-300 cursor-pointer">
             Cancel
           </button>
 
-          <button onClick={save} className="px-5 py-2 rounded-xl bg-black text-white cursor-pointer">
+          <button type="button" onClick={save} className="px-5 py-2 rounded-xl bg-black text-white cursor-pointer">
             {meeting ? "Save Changes" : "Create Meeting"}
           </button>
         </div>
