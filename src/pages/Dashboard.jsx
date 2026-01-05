@@ -79,10 +79,21 @@ export default function Dashboard() {
     setMenuOpen(false);
   };
 
-  const handleSignOut = () => {
+
+const handleSignOut = async () => {
+  try {
+    // 1. Properly sign out from Supabase
+    await supabase.auth.signOut();
+    
+    // 2. Clear local storage as a backup
     localStorage.clear();
-    navigate("/");
-  };
+    
+    // 3. Redirect to the landing page
+    navigate("/", { replace: true });
+  } catch (error) {
+    console.error("Error signing out:", error);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 px-4 pb-20 pt-4 font-sans">
