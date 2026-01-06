@@ -1,18 +1,22 @@
 import os
-import time
+import re
+import pandas as pd
+from supabase import create_client
 from dotenv import load_dotenv
 from openpyxl import load_workbook
-from supabase import create_client
-import requests
 
-# ---------------- CONFIG ----------------
+# ================= LOAD ENV =================
 load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-FILE = "college.xlsx"
-AVATAR_BUCKET = "avatars"
+supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+# ================= CONFIG =================
+FILE = "cse.xlsx"
+BUCKET = "avatars"
+DEPT = "CSE"
 
 DAY_MAP = {
     "M": "monday",
@@ -24,121 +28,123 @@ DAY_MAP = {
 }
 
 def empty_week():
-    return {
-        "monday": [None]*7,
-        "tuesday": [None]*7,
-        "wednesday": [None]*7,
-        "thursday": [None]*7,
-        "friday": [None]*7,
-        "saturday": [None]*7,
-    }
+    return {day: [None] * 7 for day in DAY_MAP.values()}
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+# ================= LOAD AUTH USERS =================
+print("📦 Loading auth users...")
+auth_res = supabase.auth.admin.list_users(per_page=1000)
+auth_users = {u.email: u for u in auth_res}
 
-# ---------------- LOAD EXCEL ----------------
+# ================= EXTRACT IMAGES =================
+print("🖼 Extracting images from Excel...")
 wb = load_workbook(FILE)
 ws = wb.active
 
-headers = [cell.value for cell in ws[1]]
-rows = list(ws.iter_rows(min_row=2))
+row_images = {}
+for img in ws._images:
+    excel_row = img.anchor._from.row + 1
+    row_images[excel_row] = img._data()
 
-# ---------------- IMAGE MAP (ROW INDEX → IMAGE) ----------------
-image_map = {}
-for image in ws._images:
-    row = image.anchor._from.row + 1  # 1-based
-    image_map[row] = image
+# ================= LOAD EXCEL DATA =================
+df = pd.read_excel(FILE)
 
-# ---------------- MAIN ----------------
-for idx, row in enumerate(rows, start=2):
-    row_data = dict(zip(headers, [c.value for c in row]))
+# ================= MAIN LOOP =================
+for index, row in df.iterrows():
+    excel_row = index + 2  # header offset
+    email = str(row.get("Mail id", "")).strip()
+    name = str(row.get("Staff Name", "")).strip()
 
-    email = row_data.get("Mail id")
-    name = row_data.get("Staff Name")
-
-    if not email or not name:
-        print("⏭ Skipping row", idx)
+    if not email or email.lower() == "nan":
         continue
 
     print(f"\n▶ Processing {email}")
 
-    # ---------- 1. CREATE / FETCH AUTH ----------
-    user = supabase.auth.admin.get_user_by_email(email).user
+    # ---------- AUTH (CREATE OR UPDATE) ----------
+    user = auth_users.get(email)
 
     if not user:
         res = supabase.auth.admin.create_user({
             "email": email,
             "email_confirm": True,
-            "user_metadata": {"full_name": name}
+            "user_metadata": {"full_name": name},
         })
-        user_id = res.user.id
-        print("✔ Auth user created")
+        user = res.user
+        auth_users[email] = user
+        print("👤 Auth user created")
     else:
-        user_id = user.id
-        print("ℹ Auth user exists")
-
-    # ---------- 2. WAIT FOR STAFF ROW ----------
-    staff_id = None
-    for _ in range(10):
-        staff = (
-            supabase.table("staff")
-            .select("id")
-            .eq("profile_id", user_id)
-            .execute()
+        supabase.auth.admin.update_user_by_id(
+            user.id,
+            {"user_metadata": {"full_name": name}},
         )
-        if staff.data:
-            staff_id = staff.data[0]["id"]
-            break
-        time.sleep(0.5)
+        print("🔄 Auth user exists → metadata updated")
 
-    if not staff_id:
-        print("❌ Staff row missing")
-        continue
+    user_id = user.id
 
-    # ---------- 3. UPLOAD PHOTO ----------
-    photo_url = None
-    if idx in image_map:
-        image = image_map[idx]
-        img_bytes = image._data()
-        ext = image.path.split(".")[-1]
-        filename = f"{user_id}/profile.{ext}"
+    # ---------- STAFF UPSERT ----------
+    staff_payload = {
+        "profile_id": user_id,
+        "dept": DEPT,
+    }
 
-        supabase.storage.from_(AVATAR_BUCKET).upload(
-            filename,
-            img_bytes,
-            {"content-type": f"image/{ext}", "upsert": True}
+    # ---------- IMAGE: DELETE → UPLOAD ----------
+    if excel_row in row_images:
+        file_path = f"{user_id}/profile.jpg"
+
+        try:
+            supabase.storage.from_(BUCKET).remove([file_path])
+            print("🗑 Old photo removed (if existed)")
+        except Exception:
+            pass
+
+        supabase.storage.from_(BUCKET).upload(
+            file_path,
+            row_images[excel_row],
+            file_options={
+                "content-type": "image/jpeg",
+                "upsert": "false",
+            },
         )
 
-        photo_url = (
-            f"{SUPABASE_URL}/storage/v1/object/public/"
-            f"{AVATAR_BUCKET}/{filename}"
+        staff_payload["photo_url"] = (
+            f"{SUPABASE_URL}/storage/v1/object/public/{BUCKET}/{file_path}"
         )
-
-        supabase.table("staff").update({
-            "photo_url": photo_url
-        }).eq("id", staff_id).execute()
 
         print("✔ Photo uploaded")
 
-    # ---------- 4. BUILD TIMETABLE ----------
+    supabase.table("staff").upsert(
+        staff_payload,
+        on_conflict="profile_id",
+    ).execute()
+
+    # Fetch staff_id safely
+    staff_row = (
+        supabase.table("staff")
+        .select("id")
+        .eq("profile_id", user_id)
+        .single()
+        .execute()
+    )
+
+    staff_id = staff_row.data["id"]
+    print("✔ Staff upserted")
+
+    # ---------- TIMETABLE UPSERT ----------
     week = empty_week()
-    for k, v in row_data.items():
-        if not v:
-            continue
-        import re
-        m = re.match(r"^(M|T|W|Th|F|Sa)(\d)$", k)
-        if not m:
-            continue
-        day = DAY_MAP[m.group(1)]
-        period = int(m.group(2)) - 1
-        week[day][period] = str(v)
 
-    # ---------- 5. UPSERT TIMETABLE ----------
-    supabase.table("timetable").upsert({
-        "staff_id": staff_id,
-        **week
-    }, on_conflict="staff_id").execute()
+    for col in df.columns:
+        match = re.match(r"^(M|T|W|Th|F|Sa)(\d)$", str(col))
+        if match:
+            day = DAY_MAP[match.group(1)]
+            idx = int(match.group(2)) - 1
+            value = row.get(col)
+            if pd.notna(value):
+                week[day][idx] = str(value).strip()
 
-    print("✔ Timetable saved")
+    supabase.table("timetable").upsert(
+        {"staff_id": staff_id, **week},
+        on_conflict="staff_id",
+    ).execute()
 
-print("\n🎉 IMPORT COMPLETED SUCCESSFULLY")
+    print("✔ Timetable upserted")
 
+print("\n🎉 IMPORT COMPLETED — SAFE TO RE-RUN")
